@@ -191,12 +191,12 @@ def pass_setup_test(result, incomplete):
     if result == "restart":
         error = "Please restart SABnzbd, allow_streaming"
     if not result == "ok":
-        xbmcgui.Dialog().ok('NZBS - SABnzbd error:', error)
+        xbmcgui.Dialog().ok('Pneumatic - SABnzbd error:', error)
         pass_test = False
     filename = ['plugin.program.pneumatic.test.rar']
     if not incomplete:
-        pass_test = False
-        xbmcgui.Dialog().ok('Pneumatic', 'no incomplete folder configured')
+            pass_test = False
+            xbmcgui.Dialog().ok('Pneumatic', 'No incomplete folder configured')
     try:
         write_fake(filename, incomplete)
     except:
@@ -206,5 +206,5 @@ def pass_setup_test(result, incomplete):
         remove_fake(filename, incomplete)
     except:
         pass_test = False
-        xbmcgui.Dialog().ok('pneumatic - failed to remove test file', 'in incomplete folder')
+        xbmcgui.Dialog().ok('Pneumatic - failed to remove test file', 'in incomplete folder')
     return pass_test

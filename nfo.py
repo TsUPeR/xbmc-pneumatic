@@ -101,7 +101,7 @@ class NfoLabels:
         return size
 
     def _code_from_plot(self, plot):
-        RE_CODE = ('code:(tt\d*)')
+        RE_CODE = ('code:(t*\d*)')
         re_obj_code = re.compile(RE_CODE)
         code = re_obj_code.search(plot).groups()
         if code:
