@@ -208,3 +208,11 @@ def pass_setup_test(result, incomplete):
         pass_test = False
         xbmcgui.Dialog().ok('Pneumatic - failed to remove test file', 'in incomplete folder')
     return pass_test
+    
+def short_string(input):
+    chars = len(input)
+    if chars < 54:
+        return input
+    else:
+        output = input[0:35] + "...  ..." + input[(chars-11):(chars)]
+        return output
