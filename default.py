@@ -65,6 +65,7 @@ MODE_INCOMPLETE_LIST = "incomplete_list"
 MODE_STRM = "strm"
 MODE_SAVE_STRM = "save_strm"
 
+
 def add_posts(info_labels, url, mode, thumb='', fanart='', folder=True):
     listitem=xbmcgui.ListItem(info_labels['title'], iconImage="DefaultVideo.png", thumbnailImage=thumb)
     listitem.setInfo(type="Video", infoLabels=info_labels)
@@ -91,9 +92,6 @@ def is_nzb_home(params):
     if not os.path.exists(folder):
         category = get_category()
         addurl = SABNZBD.addurl(nzb, nzbname, category)
-        # TODO
-        # Start a meta_data_fetch thread and download covers, fanart and nfo
-        # to the incomplete folder
         progressDialog.create('Pneumatic', 'Sending request to SABnzbd')
         if "ok" in addurl:
             progressDialog.update(0, 'Request to SABnzbd succeeded', 'waiting for nzb download')
@@ -138,9 +136,7 @@ def is_nzb_home(params):
         switch = SABNZBD.switch(0,nzbname, '')
         if not "ok" in switch:
             xbmc.log(switch)
-            progressDialog.create('Pneumatic', 'Failed to prioritize the nzb!')
-            time.sleep(2)
-            progressDialog.close()
+            xbmc.executebuiltin('Notification("Pneumatic","Failed to prioritize the nzb!")')
         # TODO make sure there is also a NZB in the queue
         return True
 
@@ -283,7 +279,7 @@ def wait_for_rar(folder, sab_nzo_id, some_rar):
     if not is_rar_found:
         seconds = 0
         progressDialog = xbmcgui.DialogProgress()
-        progressDialog.create('Pneumatic', 'Request to SABnzbd succeeded, waiting for ', some_rar)
+        progressDialog.create('Pneumatic', 'Request to SABnzbd succeeded, waiting for ', utils.short_string(some_rar))
         while not is_rar_found:
             seconds += 1
             time.sleep(1)
@@ -302,9 +298,7 @@ def wait_for_rar(folder, sab_nzo_id, some_rar):
                     is_rar_found = True
                     break
             label = str(seconds) + " seconds"
-            # TODO
-            # Shorten some_rar if to long for the dialog window
-            progressDialog.update(0, 'Request to SABnzbd succeeded, waiting for', some_rar, label)
+            progressDialog.update(0, 'Request to SABnzbd succeeded, waiting for', utils.short_string(some_rar), label)
             if progressDialog.iscanceled():
                 progressDialog.close()
                 dialog = xbmcgui.Dialog()
@@ -394,11 +388,7 @@ def play_video(params):
         # if the item is in the queue we remove the temp files
         utils.remove_fake(file_list, folder)
     else:
-        # TODO Notification
-        progressDialog = xbmcgui.DialogProgress()
-        progressDialog.create('Pneumatic', 'File deleted')
-        time.sleep(1)
-        progressDialog.close()
+        xbmc.executebuiltin('Notification("Pneumatic","File deleted")')
         time.sleep(1)
         xbmc.executebuiltin("Action(ParentDir)")
     return
@@ -593,7 +583,7 @@ if (__name__ == "__main__" ):
             if get("mode")== MODE_INCOMPLETE_LIST:
                 list_incomplete(params)
             if get("mode")== MODE_STRM:
-                xbmc.executebuiltin('Notification("Pneumatic","Starting streaming")')
+                xbmc.executebuiltin('Dialog.Close(all, true)')
                 time.sleep(2)
                 if is_nzb_home(params):
                     nzbname = urllib.unquote_plus(get("nzbname"))
@@ -606,7 +596,3 @@ if (__name__ == "__main__" ):
                 t.start()
                 time.sleep(3)
                 xbmc.executebuiltin('UpdateLibrary(video,' + xbmc.translatePath(strm_path) + ')')
-
-#xbmcplugin.endOfDirectory(HANDLE, succeeded=True, cacheToDisc=True)
-
-
