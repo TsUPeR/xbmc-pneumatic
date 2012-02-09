@@ -405,7 +405,7 @@ def play_video(params):
                 wait+= 1
                 if xbmc.Player().isPlayingVideo():
                     break
-            utils.remove_fake(file_list, folder
+            utils.remove_fake(file_list, folder)
     else:
         xbmc.executebuiltin('Notification("Pneumatic","File deleted")')
         time.sleep(1)
