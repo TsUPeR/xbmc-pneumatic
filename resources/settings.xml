@@ -13,6 +13,8 @@
   <setting id="sabnzbd_cat" type="text" label="30016" default=""/>
   <setting id="sabnzbd_cat_ask" type="bool" label="30017" default="false"/>
   <setting type="sep" />
+  <setting id="post_process" type="labelenum" label="30019" values="Disabled|Delete|Repair|Ask" default="Disabled"/>
+  <setting type="sep" />
   <setting id="strm_path" type="folder" label="30018" default=""/>
   </category>
 </settings>
