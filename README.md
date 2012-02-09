@@ -14,11 +14,11 @@ plugin://plugin.program.pneumatic/
 
 PLAY
 ----
-?mode=play&nzb=_url.encoded.nzb.http.path_&nzbname=_url.encoded.output.name_
+?mode=play&nzb=[url.encoded.nzb.http.path]&nzbname=[url.encoded.output.name]
 
 DOWNLOAD
 --------
-?mode=download&nzb=_url.encoded.nzb.http.path_&nzbname=_url.encoded.output.name_
+?mode=download&nzb=[url.encoded.nzb.http.path]&nzbname=[url.encoded.output.name]
 
 INCOMPLETE
 ----------
@@ -26,8 +26,8 @@ INCOMPLETE
 
 SAVE .STRM
 ----------
-?mode=save_strm&nzb=_url.encoded.nzb.http.path_&nzbname=_url.encoded.output.name_
+?mode=save_strm&nzb=[url.encoded.nzb.http.path]&nzbname=[url.encoded.output.name]
 
 STRM
 ----
-?mode=strm&nzb=_url.encoded.nzb.http.path_&nzbname=_url.encoded.output.name_
+?mode=strm&nzb=[url.encoded.nzb.http.path]&nzbname=[url.encoded.output.name]
