@@ -115,7 +115,7 @@ def rar_filenames(folder, file):
     movie_file_list = rf.namelist()
     for f in rf.infolist():
         if f.compress_type != 48:
-            xbmc.executebuiltin('Notification("NZBS","Compressed rar!!!")')
+            xbmc.executebuiltin('Notification("Pneumatic","Compressed rar!!!")')
     return movie_file_list
 
 def is_movie_mkv(movie_list):
@@ -211,8 +211,8 @@ def pass_setup_test(result, incomplete):
     
 def short_string(input):
     chars = len(input)
-    if chars < 54:
+    if chars < 52:
         return input
     else:
-        output = input[0:35] + "...  ..." + input[(chars-11):(chars)]
+        output = input[0:33] + "...  ..." + input[(chars-11):(chars)]
         return output

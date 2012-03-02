@@ -38,12 +38,11 @@ class StrmFile:
         nzb = urllib.quote_plus(self.nzb)
         nzbname = urllib.quote_plus(self.nzbname)
         if os.path.exists(filename):
-            xbmc.log("plugin.program.pneumatic replacing .strm file: %s" % filename)
-        try: 
-            f = open(filename, 'w')
-            line = "plugin://plugin.program.pneumatic/?mode=strm&nzb=" + nzb +\
-                   "&nzbname=" + nzbname
-            f.write(line)
-            f.close()
-        except:
-            xbmc.log("plugin.program.pneumatic failed to create .strm file: %s" % filename)
+            xbmc.log("plugin.program.pneumatic replacing .strm file: %s" % filename.encode("utf_8"))
+        line = "plugin://plugin.program.pneumatic/?mode=strm&nzb=" + nzb +\
+                       "&nzbname=" + nzbname
+        with open(filename, 'wb') as out:
+            try: 
+                out.write(line)
+            except:
+                xbmc.log("plugin.program.pneumatic failed to create .strm file: %s" % filename.encode("utf_8"))

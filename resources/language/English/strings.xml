@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <strings>
     <!-- Plugin settings strings -->
+    <string id="30000">General</string>
     <string id="30003">Auto play videos</string>
     <!-- SABnzbd -->
+    <string id="30004">SABnzbd</string>
+    <string id="30005">Category</string>
     <string id="30006">SABnzbd API key</string>
     <string id="30014">SABnzbd Username</string>
     <string id="30015">SABnzbd Password</string>
@@ -12,7 +15,15 @@
     <string id="30008">SABnzbd IP</string>
     <string id="30009">SABnzbd port</string>
     <!-- the_end -->
-    <string id="30019">Post-processing</string>
+    <string id="30020">Post-processing</string>
+    <string id="30025">Nfo</string>
+    <string id="30021">Save movie.nfo</string>
+    <string id="30022">Save episode.nfo</string>
+    <string id="30023">Save poster</string>
+    <string id="30024">Save fanart</string>
     <!-- .strm -->
-    <string id="30018">.strm file storage</string>
+    <string id="30033">Strm</string>
+    <string id="30031">.strm file storage movies</string>
+    <string id="30032">.strm file storage tv-shows</string>
+    <string id="30030">Library</string>
 </strings>

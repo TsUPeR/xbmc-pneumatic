@@ -27,7 +27,7 @@ import math
 import re
 import os
 import shutil
-from xml.dom.minidom import parse, parseString
+from xml.dom.minidom import parse, parseString, Document, _write_data, Node, Element
 
 class NfoLabels:
     def __init__(self, nfo_path = None):
@@ -37,9 +37,10 @@ class NfoLabels:
             'title': unicode(xbmc.getInfoLabel( "ListItem.Title" ), 'utf-8'),
             'genre': unicode(xbmc.getInfoLabel( "ListItem.Genre" ), 'utf-8'),
             'plot': unicode(xbmc.getInfoLabel( "ListItem.Plot" ), 'utf-8'),
+            'rating': unicode(xbmc.getInfoLabel( "ListItem.Rating" ), 'utf-8'),
             'aired': unicode(xbmc.getInfoLabel( "ListItem.Premiered" ), 'utf-8'),
             'mpaa': unicode(xbmc.getInfoLabel( "ListItem.MPAA" ), 'utf-8'),
-            'duration': unicode(xbmc.getInfoLabel( "ListItem.DUration" ), 'utf-8'),
+            'duration': unicode(xbmc.getInfoLabel( "ListItem.Duration" ), 'utf-8'),
             'studio': unicode(xbmc.getInfoLabel( "ListItem.Studio" ), 'utf-8'),
             'cast': unicode(xbmc.getInfoLabel( "ListItem.Cast" ), 'utf-8'),
             'writer': unicode(xbmc.getInfoLabel( "ListItem.Writer" ), 'utf-8'),
@@ -68,6 +69,18 @@ class NfoLabels:
         except:
             pass
         try:
+            rageid = self._rageid_from_plot(info_labels['plot'])
+            if rageid:
+                info_labels['rageid'] = rageid
+        except:
+            pass
+        try:
+            tvdb = self._tvdb_from_plot(info_labels['plot'])
+            if tvdb:
+                info_labels['tvdb-show'] = tvdb
+        except:
+            pass
+        try:
             info_labels['cast'] = info_labels['cast'].split('\n')
         except:
             pass
@@ -79,6 +92,10 @@ class NfoLabels:
         self.info_labels = info_labels
         self.fanart = unicode(xbmc.getInfoImage( "Listitem.Property(Fanart_Image)" ), 'utf-8')
         self.thumbnail = unicode(xbmc.getInfoImage( "ListItem.Thumb" ), 'utf-8')
+        self.nfo_path = nfo_path
+        self.is_mini = False
+
+    def path(self, nfo_path):
         self.nfo_path = nfo_path
 
     def _size_to_bytes(self, size_str):
@@ -101,7 +118,7 @@ class NfoLabels:
         return size
 
     def _code_from_plot(self, plot):
-        RE_CODE = ('code:(t*\d*)')
+        RE_CODE = ('imdb:(t*\d*)')
         re_obj_code = re.compile(RE_CODE)
         code = re_obj_code.search(plot).groups()
         if code:
@@ -109,47 +126,153 @@ class NfoLabels:
             return code
         else:
             return None
+
+    def _rageid_from_plot(self, plot):
+        RE_RAGE = ('rage:(\d*)')
+        re_obj_rage = re.compile(RE_RAGE)
+        rage = re_obj_rage.search(plot).groups()
+        if rage:
+            rage = rage[0]
+            return rage
+        else:
+            return None
+
+    def _tvdb_from_plot(self, plot):
+        RE_TVDB = ('tvdb:(\d*)')
+        re_obj_tvdb = re.compile(RE_TVDB)
+        tvdb = re_obj_tvdb.search(plot).groups()
+        if tvdb:
+            tvdb = tvdb[0]
+            return tvdb
+        else:
+            return None
+
+    def mini(self, bool = True):
+        self.is_mini = bool
+
+    def save(self, type = 'movie', filename = 'movie.nfo'):
+        """Saves XBMC .nfo xml data.
+        
+        type is a string of 'movie' or 'tvshow' or 'episodedetails'
+        """
+        filepath = os.path.join(self.nfo_path, filename)
+        if self.is_mini and type == 'movie' and 'code' in self.info_labels:
+            doc = 'http://www.imdb.com/title/' + self.info_labels['code']
+            self.write_doc(filepath, doc)
+        if self.is_mini and type == 'tvshow' and 'tvdb-show' in self.info_labels:
+            doc = 'http://thetvdb.com/index.php?tab=series&id=' + self.info_labels['tvdb-show']
+            self.write_doc(filepath, doc)
+        else:
+            self.write_doc(filepath, self.to_xml(type))
     
-    def save(self):
-        # TODO
-        # Check if movie.nfo exists, if so, check the size
-        # and replace if its smaler
-        head_name = 'movie'
-        if 'tvshowtitle' in self.info_labels:
-            head_name = 'tvshow'
-        filename = os.path.join(self.nfo_path, (head_name + '.nfo'))
-        if not os.path.exists(filename):
-            # TODO write using
-            # http://www.postneo.com/projects/pyxml/
-            f = open(filename, 'w')
-            line = '<?xml version="1.0" encoding="UTF-8" ?>\n'
-            f.write(line)
-            line = "<" + head_name + ">\n"
-            f.write(line)
-            for key, value in self.info_labels.iteritems():
-                if ('size' in key) or ('season' in key) or ('episode' in key) or ('year' in key):
-                    value = str(value)
-                if 'code' in key:
+    def write_doc(self, filepath, doc):
+        with open(filepath, 'wb') as out:
+            try: 
+                out.write(doc)
+            except:
+                xbmc.log("plugin.program.pneumatic failed to create .nfo file: %s" % filepath)
+    
+    def to_xml(self, type):
+        """Creates XBMC .nfo xml data.
+        
+        type is a string of 'movie' or 'tvshow' or 'episodedetails'
+        """
+        # from http://www.postneo.com/projects/pyxml/
+        doc = Document()
+        base = doc.createElement(type)
+        doc.appendChild(base)
+        for key, value in self.info_labels.iteritems():
+            if (key == 'size') or (key == 'season') or (key == 'episode') or (key == 'year'):
+                value = str(value)
+            if type != 'movie' and key == 'plot':
+                continue
+            if type == 'tvshow' and (key == 'size' or key == 'aired'):
+                continue
+            if type == 'episodedetails':   
+                if key == 'title' and 'tvshowtitle' in self.info_labels:
+                    continue
+                if 'tvshowtitle' in key:
+                    key = 'title'
+                if key == 'season' and not 'episode' in self.info_labels:
+                    continue
+                if key == 'episode' and not 'season' in self.info_labels:
+                    continue
+            else:
+                if key == 'season' or key == 'episode':
+                    continue
+            if key == 'code':
+                if type == 'movie':
                     key = 'id'
-                if 'cast' in key:
-                    line = ''
-                    for actor in value:
-                        line = line + "<actor>\n<name>\n" + actor.encode('utf-8') + "\n</name>\n</actor>\n"
                 else:
-                    line = "    <" + key + ">" + value.encode('utf-8') + "</" + key + ">\n"
-                f.write(line)
-            line = "</" + head_name + ">\n"
-            f.write(line)
-            f.close()
-        # Thumb and fanart
+                    continue
+            if  key == 'tvdb-show':
+                if type != 'movie':
+                    key = 'id'
+                else:
+                    continue
+            if key == 'cast' and type != 'tvshow':
+                # TODO repair
+                for actor in value:
+                    actor_element = doc.createElement('actor')
+                    name_element = doc.createElement('name')
+                    actor_element.appendChild(name_element)
+                    name_element.appendChild(doc.createTextNode(actor.lstrip()))
+                    base.appendChild(actor_element)
+            else:
+                element = doc.createElement(key)
+                element.appendChild(doc.createTextNode(value))
+                base.appendChild(element)
+        doc = doc.toprettyxml(indent="  ", encoding='utf-8')
+        return doc
+            
+    def writexml(self, writer, indent="", addindent="", newl=""):
+        # http://ronrothman.com/public/leftbraned/xml-dom-minidom-toprettyxml-and-silly-whitespace/
+        writer.write(indent+"<" + self.tagName)
+        attrs = self._get_attributes()
+        a_names = attrs.keys()
+        a_names.sort()
+        for a_name in a_names:
+            writer.write(" %s=\"" % a_name)
+            _write_data(writer, attrs[a_name].value)
+            writer.write("\"")
+        if self.childNodes:
+            if len(self.childNodes) == 1 \
+              and self.childNodes[0].nodeType == Node.TEXT_NODE:
+                writer.write(">")
+                self.childNodes[0].writexml(writer, "", "", "")
+                writer.write("</%s>%s" % (self.tagName, newl))
+                return
+            writer.write(">%s" % (newl))
+            for node in self.childNodes:
+                node.writexml(writer, indent+addindent, addindent, newl)
+            writer.write("%s</%s>%s" % (indent, self.tagName, newl))
+        else:
+            writer.write("/>%s" % (newl))
+
+    # monkey patch to fix whitespace issues with toprettyxml
+    Element.writexml = writexml
+
+    def save_tvshow(self, show_name):
+        if not 'tvshowtitle' in self.info_labels:
+            self.info_labels['tvshowtitle'] = self.info_labels['title']
+            self.info_labels['title'] = show_name
+        self.save('tvshow', 'tvshow.nfo')
+
+    def save_episode(self, nzbname):
+        nzbname = nzbname + '.nfo'
+        self.save('episodedetails', nzbname)
+
+    def save_poster(self):
         thumbnail_dest = os.path.join(self.nfo_path, 'folder.jpg')
-        cached_fanart = xbmc.getCacheThumbName(self.fanart).replace('.tbn', '')
-        cached_fanart = "special://profile/Thumbnails/" + cached_fanart[0] + "/" +\
-                        cached_fanart + ".jpg"
         try:
             shutil.copy(xbmc.translatePath(self.thumbnail), thumbnail_dest)
         except:
             xbmc.log("plugin.program.pneumatic failed to write: " +  thumbnail_dest)
+
+    def save_fanart(self):
+        cached_fanart = xbmc.getCacheThumbName(self.fanart).replace('.tbn', '')
+        cached_fanart = "special://profile/Thumbnails/" + cached_fanart[0] + "/" +\
+                        cached_fanart + ".jpg"
         fanart_dest = os.path.join(self.nfo_path, 'fanart.jpg')
         try:
             shutil.copy(xbmc.translatePath(cached_fanart), fanart_dest)
@@ -160,7 +283,7 @@ class ReadNfoLabels:
     def __init__(self, nfo_path):
         self.nfo_path = nfo_path
         filename_movie = os.path.join(self.nfo_path, ('movie.nfo'))
-        filename_tvshow = os.path.join(self.nfo_path, ('tvshow.nfo'))
+        filename_tvshow = os.path.join(self.nfo_path, ('episode.nfo'))
         if os.path.exists(filename_movie):
             filename = filename_movie
         elif os.path.exists(filename_tvshow):
@@ -189,6 +312,7 @@ class ReadNfoLabels:
             info_labels['title'] = unicode(self._get_node_value(item, "title"), 'utf-8')
             info_labels['genre'] = unicode(self._get_node_value(item, "genre"), 'utf-8')
             info_labels['plot'] = unicode(self._get_node_value(item, "plot"), 'utf-8')
+            info_labels['rating'] = unicode(self._get_node_value(item, "rating"), 'utf-8')
             info_labels['aired'] = unicode(self._get_node_value(item, "aired"), 'utf-8')
             info_labels['mpaa'] = unicode(self._get_node_value(item, "mpaa"), 'utf-8')
             info_labels['duration'] = unicode(self._get_node_value(item, "duration"), 'utf-8')
@@ -199,7 +323,6 @@ class ReadNfoLabels:
             info_labels['writer'] = unicode(self._get_node_value(item, "writer"), 'utf-8')
             info_labels['director'] = unicode(self._get_node_value(item, "director"), 'utf-8')
             info_labels['season'] = int(self._get_node_value(item, "season") or "-1")
-            info_labels['episode'] = int(self._get_node_value(item, "episode") or "-1")
             info_labels['episode'] = int(self._get_node_value(item, "episode") or "-1")
         # Clear empty keys
         for key in info_labels.keys():

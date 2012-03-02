@@ -43,6 +43,8 @@ import utils
 import nfo
 import strm
 import xbmcplayer
+import nfo2home
+import strm2lib
 
 __settings__ = xbmcaddon.Addon(id='plugin.program.pneumatic')
 __language__ = __settings__.getLocalizedString
@@ -53,10 +55,8 @@ SABNZBD = sabnzbd.Sabnzbd(__settings__.getSetting("sabnzbd_ip"),
         __settings__.getSetting("sabnzbd_user"), __settings__.getSetting("sabnzbd_pass"),
         __settings__.getSetting("sabnzbd_cat"))
 INCOMPLETE_FOLDER = __settings__.getSetting("sabnzbd_incomplete")
+
 AUTO_PLAY = (__settings__.getSetting("auto_play").lower() == "true")
-AUTO_DELETE = (__settings__.getSetting("post_process").lower() == "delete")
-AUTO_REPAIR = (__settings__.getSetting("post_process").lower() == "repair")
-ASK_AT_END = (__settings__.getSetting("post_process").lower() == "ask")
 
 MODE_PLAY = "play"
 MODE_DOWNLOAD = "download"
@@ -100,7 +100,7 @@ def is_nzb_home(params):
         if "ok" in addurl:
             progressDialog.update(0, 'Request to SABnzbd succeeded', 'waiting for nzb download')
             seconds = 0
-            while not SABNZBD.nzo_id(nzbname):
+            while not (SABNZBD.nzo_id(nzbname) and os.path.exists(folder)):
                 label = str(seconds) + " seconds"
                 progressDialog.update(0, 'Request to SABnzbd succeeded', 'waiting for nzb download', label)
                 if progressDialog.iscanceled():
@@ -145,7 +145,7 @@ def is_nzb_home(params):
         return True
 
 def save_nfo(folder):
-    nfo.NfoLabels(folder).save()
+    nfo2home.save_nfo(__settings__, folder)
     return
 
 def pre_play(nzbname, mode = None):
@@ -385,7 +385,7 @@ def play_video(params):
             xbmcplugin.setResolvedUrl(handle=HANDLE, succeeded=True, listitem=item)
         removed_fake = False
         while player.is_active:
-            player.sleep(100)
+            player.sleep(500)
             wait+= 1
             if player.is_playing and not removed_fake:
                 utils.remove_fake(file_list, folder)
@@ -399,6 +399,8 @@ def play_video(params):
             elif wait >= 1000 and not player.isPlayingVideo():
                 xbmc.executebuiltin('Notification("Pneumatic","Error playing file!")')
                 break
+        if not removed_fake:
+            utils.remove_fake(file_list, folder)
     else:
         xbmc.executebuiltin('Notification("Pneumatic","File deleted")')
         time.sleep(1)
@@ -419,11 +421,11 @@ def the_end(folder, is_stopped = False):
         the_end_dialog(params,progressing=True, is_stopped=is_stopped)
     elif is_stopped:
         the_end_dialog(params)
-    elif AUTO_REPAIR:
+    elif (__settings__.getSetting("post_process").lower() == "repair"):
         repair(params)
-    elif AUTO_DELETE:
+    elif (__settings__.getSetting("post_process").lower() == "delete"):
         delete(params)
-    elif ASK_AT_END:
+    elif (__settings__.getSetting("post_process").lower() == "ask"):
         the_end_dialog(params)
     return
 
@@ -600,18 +602,8 @@ def unikeyboard(default, message):
     else:
         return ""
 
-def save_strm(strm_path, nzbname, nzb):
-    folder = os.path.join(strm_path, nzbname)
-    print folder
-    try:
-        os.mkdir(folder)
-    except:
-        xbmc.log("plugin.program.pneumatic failed to create folder %s" % folder)
-        #return
-    nfo.NfoLabels(folder).save()
-    strm.StrmFile(folder, nzbname, nzb).save()
-    # xbmc.executebuiltin("UpdateLibrary('movie'," + strm_path + ")")
-    return
+def save_strm(nzbname, nzb):
+    strm2lib.save_strm(__settings__, nzbname, nzb)
 
 if (__name__ == "__main__" ):
     HANDLE = int(sys.argv[1])
@@ -650,10 +642,8 @@ if (__name__ == "__main__" ):
                     nzbname = urllib.unquote_plus(get("nzbname"))
                     pre_play(nzbname, MODE_STRM)
             if get("mode")== MODE_SAVE_STRM:
-                strm_path = __settings__.getSetting("strm_path")
                 nzbname = urllib.unquote_plus(get("nzbname"))
                 nzb = urllib.unquote_plus(get("nzb"))
-                t = Thread(target=save_strm, args=(strm_path, nzbname, nzb,))
+                t = Thread(target=save_strm, args=(nzbname, nzb,))
                 t.start()
-                time.sleep(3)
-                xbmc.executebuiltin('UpdateLibrary(video,' + xbmc.translatePath(strm_path) + ')')
+
