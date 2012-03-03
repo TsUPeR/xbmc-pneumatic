@@ -104,16 +104,16 @@ class Tvshow:
         # Check if tvshow.nfo is there, if not, create it.
         tv_nfo = self.info
         tv_nfo.path(strm_path_show)
-        #
+        # The Episode name has to be picked up by XBMC
+        # regexps
+        episode_name = self.check_episode_name(self.nzbname)
         if not self.save_nfo_type == "disabled":
             if self.save_nfo_type == "minimal":
                 tv_nfo.mini()
             if not os.path.exists(os.path.join(strm_path_show, 'tvshow.nfo')):
                 tv_nfo.save_tvshow(show_name)
             # now, save the episodename.nfo
-            # The Episode name has to be picked up by XBMC
-            # regexps
-            episode_name = self.check_episode_name(self.nzbname)
+
             tv_nfo.save_episode(episode_name)
         strm.StrmFile(strm_path_show, episode_name, self.nzb).save()
 
