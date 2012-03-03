@@ -198,7 +198,7 @@ class NfoLabels:
                 if key == 'episode' and not 'season' in self.info_labels:
                     continue
             else:
-                if key == 'season' or key == 'episode':
+                if key == 'season' or key == 'episode' or key == 'tvshowtitle':
                     continue
             if key == 'code':
                 if type == 'movie':
@@ -255,7 +255,7 @@ class NfoLabels:
     def save_tvshow(self, show_name):
         if not 'tvshowtitle' in self.info_labels:
             self.info_labels['tvshowtitle'] = self.info_labels['title']
-            self.info_labels['title'] = show_name
+        self.info_labels['title'] = show_name
         self.save('tvshow', 'tvshow.nfo')
 
     def save_episode(self, nzbname):
