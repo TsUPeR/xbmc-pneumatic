@@ -104,6 +104,9 @@ def is_nzb_home(params):
                 label = str(seconds) + " seconds"
                 progressDialog.update(0, 'Request to SABnzbd succeeded', 'waiting for nzb download', label)
                 if progressDialog.iscanceled():
+                    # Fix for hang when playing .strm
+                    time.sleep(1)
+                    xbmc.Player().stop()
                     #SABnzbd uses nzb url as name until it has downloaded the nzb file
                     #Trying to delete both the queue and history
                     pause = SABNZBD.pause(nzb,'')
@@ -115,6 +118,7 @@ def is_nzb_home(params):
                         if not "ok" in delete_msg:
                             xbmc.log(delete_msg)
                     iscanceled = True
+                    progressDialog.close()
                     break
                 time.sleep(1)
                 seconds += 1
@@ -132,9 +136,10 @@ def is_nzb_home(params):
                 return False
         else:
             xbmc.log(addurl)
-            progressDialog.update(0, 'Request to SABnzbd failed!')
-            time.sleep(2)
+            # Fix for hang when playing .strm
+            xbmc.Player().stop()
             progressDialog.close()
+            xbmc.executebuiltin('Notification("Pneumatic","Request to SABnzbd failed!", 1000, ' + __icon__ + ')')
             return False
     else:
         switch = SABNZBD.switch(0,nzbname, '')
@@ -304,9 +309,12 @@ def wait_for_rar(folder, sab_nzo_id, some_rar):
             label = str(seconds) + " seconds"
             progressDialog.update(0, 'Request to SABnzbd succeeded, waiting for', utils.short_string(some_rar), label)
             if progressDialog.iscanceled():
-                progressDialog.close()
                 dialog = xbmcgui.Dialog()
                 ret = dialog.select('What do you want to do?', ['Delete job', 'Just download'])
+                # Fix for hang when playing .strm
+                xbmc.Player().stop()
+                xbmc.executebuiltin('Dialog.Close(all, true)')
+                progressDialog.close()
                 if ret == 0:
                     pause = SABNZBD.pause('',sab_nzo_id)
                     time.sleep(3)
@@ -315,13 +323,11 @@ def wait_for_rar(folder, sab_nzo_id, some_rar):
                         xbmc.log(delete_)
                         xbmc.executebuiltin('Notification("Pneumatic","Deleting failed", 500, ' + __icon__ + ')')
                     else:
-                        xbmc.executebuiltin('Notification("Pneumatic","Deleting succeeded", 500, ' + __icon__ + ')')
-                    iscanceled = True
-                    return iscanceled 
-                if ret == 1:
-                    iscanceled = True
+                        xbmc.executebuiltin('Notification("Pneumatic","Deleting succeeded", 500, ' + __icon__ + ')') 
+                elif ret == 1:
                     xbmc.executebuiltin('Notification("Pneumatic","Downloading")')
                     return iscanceled
+                return True
         progressDialog.close()
     return isCanceled
 
