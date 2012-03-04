@@ -91,12 +91,12 @@ def is_nzb_home(params):
     nzb = urllib.unquote_plus(get("nzb"))
     nzbname = urllib.unquote_plus(get("nzbname"))
     folder = INCOMPLETE_FOLDER + nzbname
-    progressDialog = xbmcgui.DialogProgress()
     iscanceled = False
     if not os.path.exists(folder):
+        progressDialog = xbmcgui.DialogProgress()
+        progressDialog.create('Pneumatic', 'Sending request to SABnzbd')
         category = get_category()
         addurl = SABNZBD.addurl(nzb, nzbname, category)
-        progressDialog.create('Pneumatic', 'Sending request to SABnzbd')
         if "ok" in addurl:
             progressDialog.update(0, 'Request to SABnzbd succeeded', 'waiting for nzb download')
             seconds = 0
