@@ -189,7 +189,7 @@ class Sabnzbd:
             try:
                 sab_nzf_id_list.append(file_nzf[filename])
             except:
-                xbmc.log("plugin.video.nzbs: unable to find sab_nzf_id for: " + filename)
+                xbmc.log("plugin.program.pneumatic: unable to find sab_nzf_id for: " + filename)
         return sab_nzf_id_list
 
     def nzo_id_history(self, nzbname):
@@ -272,8 +272,8 @@ class Sabnzbd:
             req = urllib2.Request(url)
             response = urllib2.urlopen(req)
         except:
-            xbmc.log("plugin.video.nzbs: unable to load url: " + url)
-            xbmc.executebuiltin('Notification("NZBS","SABnzbd failed moving file to top of queue")')
+            xbmc.log("plugin.program.pneumatic: unable to load url: " + url)
+            xbmc.executebuiltin('Notification("Pneumatic","SABnzbd failed moving file to top of queue")')
             return None
         response.close()
         return
@@ -311,7 +311,7 @@ class Sabnzbd:
             req = urllib2.Request(url)
             response = urllib2.urlopen(req)
         except:
-            xbmc.log("plugin.video.nzbs: unable to conncet to SABnzbd: " + url)
+            xbmc.log("plugin.program.pneumatic: unable to conncet to SABnzbd: " + url)
             return "ip"
         xml = response.read()
         response.close()
@@ -339,15 +339,15 @@ def _load_xml(url):
         req = urllib2.Request(url)
         response = urllib2.urlopen(req)
     except:
-        xbmc.log("plugin.video.nzbs: unable to load url: " + url)
-        xbmc.executebuiltin('Notification("NZBS","SABnzbd down")')
+        xbmc.log("plugin.program.pneumatic: unable to load url: " + url)
+        # xbmc.executebuiltin('Notification("Pneumatic","SABnzbd down")')
         return None
     xml = response.read()
     response.close()
     try:
         out = parseString(xml)
     except:
-        xbmc.log("plugin.video.nzbs: malformed xml from url: " + url)
-        xbmc.executebuiltin('Notification("NZBS","SABnzbd malformed xml")')
+        xbmc.log("plugin.program.pneumatic: malformed xml from url: " + url)
+        # xbmc.executebuiltin('Notification("Pneumatic","SABnzbd malformed xml")')
         return None
     return out
