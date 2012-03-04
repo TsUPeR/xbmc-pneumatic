@@ -38,8 +38,6 @@ def save_nfo(settings, folder):
     if 'rageid' in info_labels or 'tvdb-show' in info_labels:
         m_episode.save()
     else:
-        if 'code' in info_labels:
-            m_movie.set_imdbid(info_labels['code'])
         m_movie.save()
     return
 
@@ -64,9 +62,6 @@ class Movie:
         self.save_nfo_type = save_nfo_type
         self.save_poster = save_poster
         self.save_fanart = save_fanart
-
-    def set_imdbid(self, imdbid):
-        self.imdbid = imdbid
 
     def save(self):
         movie_nfo = self.info

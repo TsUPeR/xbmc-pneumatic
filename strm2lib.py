@@ -48,7 +48,6 @@ def save_strm(settings, nzbname, nzb):
                (settings.getSetting("lib_save_nfo_fanart").lower() == "true"),\
                nzbname, nzb)
     if 'code' in info_labels and not 'rageid' in info_labels and not 'tvdb-show' in info_labels:
-        m_movie.set_imdbid(info_labels['code'])
         m_movie.save()
         time.sleep(3)
         xbmc.executebuiltin('UpdateLibrary(video,' + xbmc.translatePath(m_movie.strm_path_movie) + ')')
@@ -113,7 +112,6 @@ class Tvshow:
             if not os.path.exists(os.path.join(strm_path_show, 'tvshow.nfo')):
                 tv_nfo.save_tvshow(show_name)
             # now, save the episodename.nfo
-
             tv_nfo.save_episode(episode_name)
         strm.StrmFile(strm_path_show, episode_name, self.nzb).save()
 
@@ -216,7 +214,7 @@ class RageCache:
         pickle.dump( cache_dict, open( self.cache_path, "wb" ) )
 
 class Movie:
-    def __init__(self, info, strm_path_movie, save_nfo_type, save_poster, save_fanart, nzbname, nzb, imdbid = None):
+    def __init__(self, info, strm_path_movie, save_nfo_type, save_poster, save_fanart, nzbname, nzb):
         self.info = info
         self.strm_path_movie = strm_path_movie
         self.strm_path = os.path.join(self.strm_path_movie, nzbname)
@@ -225,10 +223,6 @@ class Movie:
         self.save_fanart = save_fanart
         self.nzbname = nzbname
         self.nzb = nzb
-        self.imdbid = imdbid
-
-    def set_imdbid(self, imdbid):
-        self.imdbid = imdbid
 
     def save(self):
         if not os.path.exists(self.strm_path):
