@@ -65,6 +65,9 @@ class Movie:
         self.save_poster = save_poster
         self.save_fanart = save_fanart
 
+    def set_imdbid(self, imdbid):
+        self.imdbid = imdbid
+
     def save(self):
         movie_nfo = self.info
         movie_nfo.path(self.folder)
