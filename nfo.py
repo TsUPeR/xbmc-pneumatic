@@ -37,7 +37,7 @@ class NfoLabels:
             'title': unicode(xbmc.getInfoLabel( "ListItem.Title" ), 'utf-8'),
             'genre': unicode(xbmc.getInfoLabel( "ListItem.Genre" ), 'utf-8'),
             'plot': unicode(xbmc.getInfoLabel( "ListItem.Plot" ), 'utf-8'),
-            'rating': unicode(xbmc.getInfoLabel( "ListItem.Rating" ), 'utf-8'),
+            'rating': float(unicode(xbmc.getInfoLabel( "ListItem.Rating" ), 'utf-8') or "0"),
             'aired': unicode(xbmc.getInfoLabel( "ListItem.Premiered" ), 'utf-8'),
             'mpaa': unicode(xbmc.getInfoLabel( "ListItem.MPAA" ), 'utf-8'),
             'duration': unicode(xbmc.getInfoLabel( "ListItem.Duration" ), 'utf-8'),
@@ -157,10 +157,10 @@ class NfoLabels:
         """
         filepath = os.path.join(self.nfo_path, filename)
         if self.is_mini and type == 'movie' and 'code' in self.info_labels:
-            doc = 'http://www.imdb.com/title/' + self.info_labels['code']
+            doc = 'http://www.imdb.com/title/%s' % self.info_labels['code']
             self.write_doc(filepath, doc)
         if self.is_mini and type == 'tvshow' and 'tvdb-show' in self.info_labels:
-            doc = 'http://thetvdb.com/index.php?tab=series&id=' + self.info_labels['tvdb-show']
+            doc = 'http://thetvdb.com/index.php?tab=series&id=%s' % self.info_labels['tvdb-show']
             self.write_doc(filepath, doc)
         else:
             self.write_doc(filepath, self.to_xml(type))
@@ -170,7 +170,8 @@ class NfoLabels:
             try: 
                 out.write(doc)
             except:
-                xbmc.log("plugin.program.pneumatic failed to create .nfo file: %s" % filepath)
+                xbmc.log('plugin.program.pneumatic failed to create .nfo file: %s' % \
+                         xbmc.translatePath(filepath))
     
     def to_xml(self, type):
         """Creates XBMC .nfo xml data.
@@ -182,7 +183,7 @@ class NfoLabels:
         base = doc.createElement(type)
         doc.appendChild(base)
         for key, value in self.info_labels.iteritems():
-            if (key == 'size') or (key == 'season') or (key == 'episode') or (key == 'year'):
+            if (key == 'size') or (key == 'season') or (key == 'episode') or (key == 'year') or (key == 'rating'):
                 value = str(value)
             if type != 'movie' and key == 'plot':
                 continue
@@ -211,7 +212,6 @@ class NfoLabels:
                 else:
                     continue
             if key == 'cast' and type != 'tvshow':
-                # TODO repair
                 for actor in value:
                     actor_element = doc.createElement('actor')
                     name_element = doc.createElement('name')
@@ -267,17 +267,17 @@ class NfoLabels:
         try:
             shutil.copy(xbmc.translatePath(self.thumbnail), thumbnail_dest)
         except:
-            xbmc.log("plugin.program.pneumatic failed to write: " +  thumbnail_dest)
+            xbmc.log('plugin.program.pneumatic failed to write: %s' %  xbmc.translatePath(thumbnail_dest))
 
     def save_fanart(self):
         cached_fanart = xbmc.getCacheThumbName(self.fanart).replace('.tbn', '')
-        cached_fanart = "special://profile/Thumbnails/" + cached_fanart[0] + "/" +\
-                        cached_fanart + ".jpg"
+        cached_fanart = "special://profile/Thumbnails/%s/%s.jpg" % (cached_fanart[0], cached_fanart)
         fanart_dest = os.path.join(self.nfo_path, 'fanart.jpg')
         try:
-            shutil.copy(xbmc.translatePath(cached_fanart), fanart_dest)
+            shutil.copy(xbmc.translatePath(cached_fanart), xbmc.translatePath(fanart_dest))
         except:
-            xbmc.log("plugin.program.pneumatic failed to write: " +  fanart_dest + " from: " + xbmc.translatePath(cached_fanart))
+            xbmc.log('plugin.program.pneumatic failed to write: %s from: %s' % \
+                    (xbmc.translatePath(fanart_dest), xbmc.translatePath(cached_fanart)))
 
 class ReadNfoLabels:
     def __init__(self, nfo_path):
@@ -292,7 +292,8 @@ class ReadNfoLabels:
             f = open(filename, 'r')
             out = parseString(f.read())
         except:
-            xbmc.log("plugin.program.pneumatics could not open: " + self.nfo_path + "*.nfo")
+            xbmc.log(('plugin.program.pneumatics could not open: %s.nfo') % \
+                    (xbmc.translatePath(self.nfo_path)))
             out = None
         if out:
             self.info_labels = self._get_info_labels(out)
@@ -312,7 +313,7 @@ class ReadNfoLabels:
             info_labels['title'] = unicode(self._get_node_value(item, "title"), 'utf-8')
             info_labels['genre'] = unicode(self._get_node_value(item, "genre"), 'utf-8')
             info_labels['plot'] = unicode(self._get_node_value(item, "plot"), 'utf-8')
-            info_labels['rating'] = unicode(self._get_node_value(item, "rating"), 'utf-8')
+            info_labels['rating'] = float(unicode(self._get_node_value(item, "rating"), 'utf-8') or "0")
             info_labels['aired'] = unicode(self._get_node_value(item, "aired"), 'utf-8')
             info_labels['mpaa'] = unicode(self._get_node_value(item, "mpaa"), 'utf-8')
             info_labels['duration'] = unicode(self._get_node_value(item, "duration"), 'utf-8')
