@@ -284,10 +284,12 @@ class ReadNfoLabels:
         self.nfo_path = nfo_path
         filename_movie = os.path.join(self.nfo_path, ('movie.nfo'))
         filename_tvshow = os.path.join(self.nfo_path, ('episode.nfo'))
+        self.is_episode = False
         if os.path.exists(filename_movie):
             filename = filename_movie
         elif os.path.exists(filename_tvshow):
             filename = filename_tvshow
+            self.is_episode = True
         try:
             f = open(filename, 'r')
             out = parseString(f.read())
@@ -298,7 +300,7 @@ class ReadNfoLabels:
         if out:
             self.info_labels = self._get_info_labels(out)
         else:
-            self.info_labels = {'title': os.path.basename(nfo_path)}
+            self.info_labels = {'title': os.path.basename(self.nfo_path)}
         self.thumbnail = os.path.join(self.nfo_path, 'folder.jpg')
         self.fanart = os.path.join(self.nfo_path, 'fanart.jpg')
 
@@ -307,10 +309,16 @@ class ReadNfoLabels:
         items = doc.getElementsByTagName("movie")
         if not items:
             items = doc.getElementsByTagName("tvshow")
+        if not items:
+            items = doc.getElementsByTagName("episodedetails")
         for item in items:
             info_labels['size'] = int(self._get_node_value(item, "size") or "-1")
-            info_labels['tvshowtitle'] = (unicode(self._get_node_value(item, "tvshowtitle"), 'utf-8') or "")
-            info_labels['title'] = unicode(self._get_node_value(item, "title"), 'utf-8')
+            if self.is_episode:
+                info_labels['tvshowtitle'] = (unicode(self._get_node_value(item, "title"), 'utf-8') or "")
+                info_labels['title'] = unicode(os.path.basename(xbmc.translatePath(self.nfo_path)), 'utf-8')
+            else:
+                info_labels['tvshowtitle'] = (unicode(self._get_node_value(item, "tvshowtitle"), 'utf-8') or "")
+                info_labels['title'] = (unicode(self._get_node_value(item, "title"), 'utf-8'))
             info_labels['genre'] = unicode(self._get_node_value(item, "genre"), 'utf-8')
             info_labels['plot'] = unicode(self._get_node_value(item, "plot"), 'utf-8')
             info_labels['rating'] = float(unicode(self._get_node_value(item, "rating"), 'utf-8') or "0")
