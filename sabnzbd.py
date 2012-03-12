@@ -2,6 +2,7 @@ import urllib
 import urllib2
 import xbmc
 from xml.dom.minidom import parse, parseString
+import post_form
 
 class Sabnzbd:
     def __init__ (self, ip, port, apikey, username = None, password = None, category = None):
@@ -17,15 +18,38 @@ class Sabnzbd:
             opener = urllib2.build_opener(authhandler)
             urllib2.install_opener(opener)
         self.category = category
-    
-    
-    def addurl(self, nzb, nzbname, category = None):
-        url = self.baseurl + "&mode=addurl&name=" + urllib.quote_plus(nzb) + "&nzbname=" + urllib.quote_plus(nzbname)
+            
+    def addurl(self, nzb, nzbname, **kwargs):
+        category = kwargs.get('category', None)
+        priority = kwargs.get('priority', None)
+        url = "%s&mode=addurl&name=%s&nzbname=%s" % \
+              (self.baseurl, urllib.quote_plus(nzb),urllib.quote_plus(nzbname))
+        if priority:
+            url = "%s&priority=%s" % (url, priority)
         if category:
-            url = url + "&cat=" + category
+            url = "%s&cat=%s" % (url, category)
         elif self.category:
-            url = url + "&cat=" + self.category
+            url = "%s&cat=%s" % (url, self.category)
         responseMessage = self._sabResponse(url)
+        return responseMessage
+
+    def add_local(self, path, **kwargs):
+        category = kwargs.get('category', None)
+        priority = kwargs.get('priority', None)
+        url = "%s&mode=addlocalfile&name=%s" % \
+              (self.baseurl, urllib.quote_plus(path))
+        if priority:
+            url = "%s&priority=%s" % (url, priority)
+        if category:
+            url = "%s&cat=%s" % (url, category)
+        elif self.category:
+            url = "%s&cat=%s" % (url, self.category)
+        responseMessage = self._sabResponse(url)
+        return responseMessage
+        
+    def add_file(self, path, **kwargs):
+        url = "%s&mode=addfile" % self.baseurl
+        responseMessage = post_form.post(path, self.apikey, url, **kwargs)
         return responseMessage
 
     def pause(self, nzbname='', id=''):
@@ -87,8 +111,6 @@ class Sabnzbd:
             responseMessage = "no name or id for post process provided"
         return responseMessage
 
-
-
     def switch(self, value=0, nzbname='',id=''):
         if not value in range(0,100):
             value = 0
@@ -101,11 +123,9 @@ class Sabnzbd:
             responseMessage = self._sabResponse(url)
         else:
             responseMessage = "no name or id for job switch provided"
-        if "0" in responseMessage:
+        if "0" or "-1 1" in responseMessage:
             responseMessage = "ok"
         return responseMessage
-
-
 
     def repair(self, nzbname='',id=''):
         if nzbname:
@@ -146,6 +166,8 @@ class Sabnzbd:
                 responseMessage = 'ok'
             else:
                 responseMessage = log
+                xbmc.log("plugin.program.pneumatic SABnzbd message: %s" % log)
+                xbmc.log("plugin.program.pneumatic SABnzbd from url: %s" % url)
         return responseMessage
         
     def nzo_id(self, nzbname):
@@ -330,9 +352,9 @@ class Sabnzbd:
 
 def get_node_value(parent, name, ns=""):
     if ns:
-        return parent.getElementsByTagNameNS(ns, name)[0].childNodes[0].data.encode('utf-8')
+        return unicode(parent.getElementsByTagNameNS(ns, name)[0].childNodes[0].data.encode('utf-8'), 'utf-8')
     else:
-        return parent.getElementsByTagName(name)[0].childNodes[0].data.encode('utf-8')
+        return unicode(parent.getElementsByTagName(name)[0].childNodes[0].data.encode('utf-8'), 'utf-8')
 
 def _load_xml(url):
     try:
@@ -340,7 +362,7 @@ def _load_xml(url):
         response = urllib2.urlopen(req)
     except:
         xbmc.log("plugin.program.pneumatic: unable to load url: " + url)
-        # xbmc.executebuiltin('Notification("Pneumatic","SABnzbd down")')
+        xbmc.executebuiltin('Notification("Pneumatic","SABnzbd down")')
         return None
     xml = response.read()
     response.close()
@@ -348,6 +370,6 @@ def _load_xml(url):
         out = parseString(xml)
     except:
         xbmc.log("plugin.program.pneumatic: malformed xml from url: " + url)
-        # xbmc.executebuiltin('Notification("Pneumatic","SABnzbd malformed xml")')
+        xbmc.executebuiltin('Notification("Pneumatic","SABnzbd malformed xml")')
         return None
     return out
