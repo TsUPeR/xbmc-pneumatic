@@ -32,4 +32,9 @@
         <setting id="lib_save_nfo_poster" type="bool" label="30023" default="true"/>
         <setting id="lib_save_nfo_fanart" type="bool" label="30024" default="true"/>
     </category>
+    <category label="30040">
+        <setting type="lsep" label="30041"/>
+        <setting id="nzb_folder" type="folder" label="30042" default=""/>
+        <setting id="is_sab_local" type="bool" label="30043" default="true"/>
+    </category>
 </settings>

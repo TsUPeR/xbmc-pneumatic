@@ -28,4 +28,9 @@
     <string id="30031">Movies</string>
     <string id="30032">Tv-shows</string>
     <string id="30030">Library</string>
+    <!-- .strm -->
+    <string id="30040">NZB</string>
+    <string id="30041">Local NZB</string>
+    <string id="30042">NZB storage</string>
+    <string id="30043">SABnzbd and XBMC is on the same computer</string>
 </strings>
