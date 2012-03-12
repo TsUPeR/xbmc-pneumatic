@@ -138,7 +138,7 @@ def no_sample_list(movie_list):
   
 def rarpath_fixer(folder, file):
     filepath = os.path.join(folder, file)
-    filepath = urllib.quote(filepath)
+    filepath = quote(filepath)
     filepath = filepath.replace(".","%2e")
     filepath = filepath.replace("-","%2d")
     filepath = filepath.replace(":","%3a")
@@ -198,6 +198,7 @@ def pass_setup_test(result, incomplete):
             pass_test = False
             xbmcgui.Dialog().ok('Pneumatic', 'No incomplete folder configured')
     try:
+        # TODO os.access
         write_fake(filename, incomplete)
     except:
         pass_test = False
@@ -216,3 +217,27 @@ def short_string(input):
     else:
         output = input[0:33] + "...  ..." + input[(chars-11):(chars)]
         return output
+
+def quote(name):
+    if isinstance(name, unicode):
+        return urllib.quote(name.encode('utf-8'))
+    else:
+        return urllib.quote(name)
+
+def quote_plus(name):
+    if isinstance(name, unicode):
+        return urllib.quote_plus(name.encode('utf-8'))
+    else:
+        return urllib.quote_plus(name)
+
+def unquote(name):
+    if isinstance(name, unicode):
+        return urllib.unquote(name)
+    else:
+        return unicode(urllib.unquote(name), 'utf-8')
+
+def unquote_plus(name):
+    if isinstance(name, unicode):
+        return urllib.unquote_plus(name)
+    else:
+        return unicode(urllib.unquote_plus(name), 'utf-8')
