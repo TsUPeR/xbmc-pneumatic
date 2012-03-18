@@ -148,7 +148,7 @@ def is_nzb_home(params):
             else:
                 return False
         else:
-            xbmc.log(addurl)
+            xbmc.log(response)
             # Fix for hang when playing .strm
             xbmc.Player().stop()
             progressDialog.close()
