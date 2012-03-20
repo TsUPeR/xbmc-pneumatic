@@ -299,11 +299,10 @@ def wait_for_rar(folder, sab_nzo_id, some_rar):
             is_rar_found = True
             break
     if not is_rar_found:
-        seconds = 0
         progressDialog = xbmcgui.DialogProgress()
         progressDialog.create('Pneumatic', 'Request to SABnzbd succeeded, waiting for ', utils.short_string(some_rar))
+        time_now = time.time()
         while not is_rar_found:
-            seconds += 1
             time.sleep(1)
             dirList = utils.sorted_rar_file_list(utils.list_dir(folder))
             for file, bytes in dirList:
@@ -319,8 +318,10 @@ def wait_for_rar(folder, sab_nzo_id, some_rar):
                             size_later = os.stat(path).st_size
                     is_rar_found = True
                     break
-            label = str(seconds) + " seconds"
-            progressDialog.update(0, 'Request to SABnzbd succeeded, waiting for', utils.short_string(some_rar), label)
+            nzo = sabnzbd.Nzo(SABNZBD, sab_nzo_id)
+            nzf = nzo.get_nzf(some_rar)
+            percent, label = utils.wait_for_rar_label(nzo, nzf, time_now)
+            progressDialog.update(percent, 'Request to SABnzbd succeeded, waiting for', utils.short_string(some_rar), label)
             if progressDialog.iscanceled():
                 dialog = xbmcgui.Dialog()
                 ret = dialog.select('What do you want to do?', ['Delete job', 'Just download'])

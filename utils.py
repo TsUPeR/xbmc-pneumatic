@@ -29,6 +29,8 @@ import htmlentitydefs
 import urllib
 import xbmc
 import xbmcgui
+import time
+import math
 
 import rarfile
 
@@ -217,6 +219,17 @@ def short_string(input):
     else:
         output = input[0:33] + "...  ..." + input[(chars-11):(chars)]
         return output
+
+def wait_for_rar_label(nzo, nzf, time_then):
+    mb = nzf.mb
+    mbleft = nzf.mbleft
+    s = time.time() - time_then
+    if mbleft > 0:
+        percent = math.floor(((mb-mbleft)/mb)*100)
+    else:
+        percent = 100
+    label = "%.0fs | %.2fMB | %sB/s | Total ETA: %s" % (s, mbleft, nzo.speed, nzo.timeleft)
+    return int(percent), label
 
 def quote(name):
     if isinstance(name, unicode):

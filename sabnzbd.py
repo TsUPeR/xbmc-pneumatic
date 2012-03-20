@@ -373,3 +373,82 @@ def _load_xml(url):
         xbmc.executebuiltin('Notification("Pneumatic","SABnzbd malformed xml")')
         return None
     return out
+
+class Nzo:
+    def __init__(self, sabnzbd, nzo_id):
+        self.sabnzbd = sabnzbd
+        self.nzo_id = nzo_id
+        self._get_queue()
+
+    def _get_queue(self):
+        # Limit to only 10 items
+        url = "%s&mode=queue&start=0&limit=10&output=xml" % self.sabnzbd.baseurl
+        doc = _load_xml(url)
+        if doc:
+            queue_info = dict()
+            queue = doc.getElementsByTagName("queue")
+            self.speed = get_node_value(queue[0], "speed")
+            slots = doc.getElementsByTagName("slot")
+            if slots:
+                for slot in slots:
+                    if self.nzo_id == get_node_value(slot, "nzo_id"):
+                        self.status = get_node_value(slot, "status")
+                        self.index = get_node_value(slot, "index")
+                        self.eta = get_node_value(slot, "eta")
+                        self.missing = get_node_value(slot, "missing")
+                        self.avg_age = get_node_value(slot, "avg_age")
+                        self.script = get_node_value(slot, "script")
+                        self.mb = get_node_value(slot, "mb")
+                        self.sizeleft = get_node_value(slot, "sizeleft")
+                        self.filename = get_node_value(slot, "filename")
+                        self.priority = get_node_value(slot, "priority")
+                        self.cat = get_node_value(slot, "cat")
+                        self.mbleft = get_node_value(slot, "mbleft")
+                        self.timeleft = get_node_value(slot, "timeleft")
+                        self.percentage = get_node_value(slot, "percentage")
+                        self.unpackopts = get_node_value(slot, "unpackopts")
+                        self.size = get_node_value(slot, "size")
+
+    def _get_nzf_list(self):
+        out_list = []
+        out_dict = dict()
+        url = "%s&mode=get_files&output=xml&value=%s" % (self.sabnzbd.baseurl, str(self.nzo_id))
+        doc = _load_xml(url)
+        if doc:
+            files = doc.getElementsByTagName("file")
+            if files:
+                i = 0
+                for file in files:
+                    kwargs = dict()
+                    kwargs['status'] = get_node_value(file, "status")
+                    kwargs['mb'] = float(get_node_value(file, "mb"))
+                    kwargs['age'] = get_node_value(file, "age")
+                    kwargs['bytes'] = int((get_node_value(file, "bytes")).replace(".00",""))
+                    kwargs['filename'] = get_node_value(file, "filename")
+                    kwargs['mbleft'] = float(get_node_value(file, "mbleft"))
+                    if kwargs['status'] == "active":
+                        kwargs['nzf_id'] = get_node_value(file, "nzf_id")
+                    kwargs['id'] = int(get_node_value(file, "id"))
+                    nzf = Nzf(**kwargs)
+                    out_list.append(nzf)
+                    out_dict[kwargs['filename']] = i
+                    i+= 1
+        return out_list, out_dict
+
+    def get_nzf(self, name):
+        try:
+            nzf_list, nzf_dict = self._get_nzf_list()
+            return nzf_list[nzf_dict[name]]
+        except:
+            return None
+
+class Nzf:
+    def __init__(self, **kwargs):
+        self.status = kwargs.get('status')
+        self.mb = kwargs.get('mb')
+        self.age = kwargs.get('age')
+        self.bytes = kwargs.get('bytes')
+        self.filename = kwargs.get('filename')
+        self.mbleft = kwargs.get('mbleft')
+        self.nzf_id = kwargs.get('nzf_if', None)
+        self.id = kwargs.get('id')
