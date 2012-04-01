@@ -155,13 +155,13 @@ def is_nzb_home(params):
             # Fix for hang when playing .strm
             xbmc.Player().stop()
             progressDialog.close()
-            xbmc.executebuiltin('Notification("Pneumatic","Request to SABnzbd failed!", 1000, ' + __icon__ + ')')
+            notification("Request to SABnzbd failed!")
             return False, sab_nzo_id
     else:
         switch = SABNZBD.switch(0,nzbname, '')
         if not "ok" in switch:
             xbmc.log(switch)
-            xbmc.executebuiltin('Notification("Pneumatic","Failed to prioritize the nzb!")')
+            notification("Failed to prioritize the nzb!")
         # TODO make sure there is also a NZB in the queue
         return True, sab_nzo_id
 
@@ -213,7 +213,7 @@ def pre_play(nzbname, **kwargs):
             movie_list = utils.sort_filename(in_rar_file_list)
             # Make sure we have a movie
             if not (len(movie_list) >= 1):
-                xbmc.executebuiltin('Notification("Pneumatic","Not a movie!", 500, ' + __icon__ + ')')
+                notification("Not a movie!")
                 break
             # Who needs sample?
             movie_no_sample_list = utils.no_sample_list(movie_list)
@@ -254,7 +254,7 @@ def pre_play(nzbname, **kwargs):
             else:
                 return playlist_item(play_list, rar_file_list, folder, sab_nzo_id, sab_nzo_id_history)
         else:
-            xbmc.executebuiltin('Notification("Pneumatic","No rar\'s in the NZB!!", 500, ' + __icon__ + ')')
+            notification("No rar\'s in the NZB!!")
             return
 
 def set_streaming(sab_nzo_id):
@@ -262,7 +262,8 @@ def set_streaming(sab_nzo_id):
     setstreaming = SABNZBD.setStreaming('', sab_nzo_id)
     if not "ok" in setstreaming:
         xbmc.log(setstreaming)
-        xbmc.executebuiltin('Notification("Pneumatic","Post process request to SABnzbd failed!", 500, ' + __icon__ + ')')
+        notification('Post process request to SABnzbd failed!')
+        #xbmc.executebuiltin('Notification("Pneumatic","Post process request to SABnzbd failed!", 500, ' + __icon__ + ')')
         time.sleep(1)
     return
 
@@ -344,11 +345,11 @@ def wait_for_nzf(folder, sab_nzo_id, nzf):
                     delete_ = SABNZBD.delete_queue('',sab_nzo_id)
                     if not "ok" in delete_:
                         xbmc.log(delete_)
-                        xbmc.executebuiltin('Notification("Pneumatic","Deleting failed", 500, ' + __icon__ + ')')
+                        notification("Deleting failed")
                     else:
-                        xbmc.executebuiltin('Notification("Pneumatic","Deleting succeeded", 500, ' + __icon__ + ')') 
+                        notification("Deleting succeeded") 
                 elif ret == 1:
-                    xbmc.executebuiltin('Notification("Pneumatic","Downloading")')
+                    notification("Downloading")
                 return True
         progressDialog.close()
     return iscanceled
@@ -428,12 +429,12 @@ def play_video(params):
                 the_end(folder)
                 player.is_active = False
             elif wait >= 6000 and not player.isPlayingVideo():
-                xbmc.executebuiltin('Notification("Pneumatic","Error playing file!")')
+                notification("Error playing file!")
                 break
         if not removed_fake:
             utils.remove_fake(file_list, folder)
     else:
-        xbmc.executebuiltin('Notification("Pneumatic","File deleted")')
+        notification("File deleted")
         time.sleep(1)
         xbmc.executebuiltin("Action(ParentDir)")
     return
@@ -501,9 +502,9 @@ def delete(params):
     end = get("end")
     delete_all = get("delete_all")
     if delete_all:
-        xbmc.executebuiltin('Notification("Pneumatic","Deleting all incomplete", 500, ' + __icon__ + ')')
+        notification("Deleting all incomplete")
     else:
-        xbmc.executebuiltin('Notification("Pneumatic", "Deleting %s", 500, %s)' % (xbmc.translatePath(folder), __icon__))
+        notification("Deleting %s" % xbmc.translatePath(folder))
     if sab_nzo_id or sab_nzo_id_history:
         delete_ = "ok"
         if sab_nzo_id:
@@ -523,13 +524,11 @@ def delete(params):
                 if delete_state is not delete_:
                     delete_state = "failed"
             delete_ = delete_state
-        if "ok" in delete_:
-            xbmc.executebuiltin('Notification("Pneumatic","Deleting succeeded", 500, ' + __icon__ + ')')
-        else:
+        if not "ok" in delete_:
             xbmc.log(delete_)
-            xbmc.executebuiltin('Notification("Pneumatic","Deleting failed", 500, ' + __icon__ + ')')
+            notification("Deleting failed")
     else:
-        xbmc.executebuiltin('Notification("Pneumatic","Deleting failed", 500, ' + __icon__ + ')')
+        notification("Deleting failed")
     if end:
         return
     elif incomplete:
@@ -580,10 +579,10 @@ def repair(params):
     end = get("end")
     repair_ = SABNZBD.repair('',sab_nzo_id_history)
     if "ok" in repair_:
-        xbmc.executebuiltin('Notification("Pneumatic","Repair succeeded")')
+        notification("Repair succeeded")
     else:
         xbmc.log(repair_)
-        xbmc.executebuiltin('Notification("Pneumatic","Repair succeeded")')
+        notification("Repair failed")
     if not end:
         xbmc.executebuiltin("Action(ParentDir)")
     return
@@ -659,6 +658,9 @@ def add_local_nzb():
         else:
             params['type'] = 'add_file' 
         return params
+
+def notification(label):
+    utils.notification(label, __settings__.getAddonInfo("icon"))
 
 if (__name__ == "__main__" ):
     HANDLE = int(sys.argv[1])

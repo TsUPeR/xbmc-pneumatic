@@ -273,6 +273,9 @@ def wait_for_rar_label(nzo, nzf, time_then):
     label = "%.0fs | %.2fMB | %sB/s | Total ETA: %s" % (s, mbleft, nzo.speed, nzo.timeleft)
     return int(percent), label
 
+def notification(label, icon):
+    xbmc.executebuiltin('Notification("Pneumatic", "%s", 500, %s)' % (label, icon))
+    
 def quote(name):
     if isinstance(name, unicode):
         return urllib.quote(name.encode('utf-8'))
