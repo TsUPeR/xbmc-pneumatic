@@ -171,7 +171,7 @@ class Sabnzbd:
         return responseMessage
         
     def nzo_id(self, nzbname):
-        url = self.baseurl + "&mode=queue&start=START&limit=LIMIT&output=xml"
+        url = self.baseurl + "&mode=queue&start=0&limit=50&output=xml"
         doc = _load_xml(url)
         sab_nzo_id = None
         if doc:
@@ -381,8 +381,8 @@ class Nzo:
         self._get_queue()
 
     def _get_queue(self):
-        # Limit to only 10 items
-        url = "%s&mode=queue&start=0&limit=10&output=xml" % self.sabnzbd.baseurl
+        # Limit to "only" 100 items
+        url = "%s&mode=queue&start=0&limit=100&output=xml" % self.sabnzbd.baseurl
         doc = _load_xml(url)
         if doc:
             queue_info = dict()
@@ -435,12 +435,28 @@ class Nzo:
                     i+= 1
         return out_list, out_dict
 
+    def nzf_list(self):
+        try:
+            nzf_list, nzf_dict = self._get_nzf_list()
+            return nzf_list
+        except:
+            return None
+
     def get_nzf(self, name):
         try:
             nzf_list, nzf_dict = self._get_nzf_list()
             return nzf_list[nzf_dict[name]]
         except:
             return None
+
+    def get_nzf_id(self, nzf_id):
+        nzf_list, nzf_dict = self._get_nzf_list()
+        out = None
+        for nzf in nzf_list:
+            if nzf_id == nzf.nzf_id:
+                out = nzf
+                break
+        return out
 
 class Nzf:
     def __init__(self, **kwargs):
@@ -449,6 +465,7 @@ class Nzf:
         self.age = kwargs.get('age')
         self.bytes = kwargs.get('bytes')
         self.filename = kwargs.get('filename')
+        self.subject = kwargs.get('subject', self.filename)
         self.mbleft = kwargs.get('mbleft')
-        self.nzf_id = kwargs.get('nzf_if', None)
+        self.nzf_id = kwargs.get('nzf_id', None)
         self.id = kwargs.get('id')

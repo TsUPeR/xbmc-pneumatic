@@ -97,7 +97,9 @@ def is_nzb_home(params):
     folder = os.path.join(INCOMPLETE_FOLDER, nzbname)
     iscanceled = False
     type = get('type', 'addurl')
-    if not os.path.exists(folder):
+    sab_nzo_id = SABNZBD.nzo_id(nzbname)
+    # if not os.path.exists(folder):
+    if not utils.dir_exists(folder, sab_nzo_id):
         progressDialog = xbmcgui.DialogProgress()
         progressDialog.create('Pneumatic', 'Sending request to SABnzbd')
         category = get_category()
@@ -111,7 +113,8 @@ def is_nzb_home(params):
         if "ok" in response:
             progressDialog.update(0, 'Request to SABnzbd succeeded', 'waiting for nzb download')
             seconds = 0
-            while not (SABNZBD.nzo_id(nzbname) and os.path.exists(folder)):
+            while not (sab_nzo_id and os.path.exists(folder)):
+                sab_nzo_id = SABNZBD.nzo_id(nzbname)
                 label = str(seconds) + " seconds"
                 progressDialog.update(0, 'Request to SABnzbd succeeded', 'waiting for nzb download', label)
                 if progressDialog.iscanceled():
@@ -144,59 +147,69 @@ def is_nzb_home(params):
                 if type == 'addurl':
                     t = Thread(target=save_nfo, args=(folder,))
                     t.start()
-                return True
+                return True, sab_nzo_id
             else:
-                return False
+                return False, sab_nzo_id
         else:
             xbmc.log(response)
             # Fix for hang when playing .strm
             xbmc.Player().stop()
             progressDialog.close()
             xbmc.executebuiltin('Notification("Pneumatic","Request to SABnzbd failed!", 1000, ' + __icon__ + ')')
-            return False
+            return False, sab_nzo_id
     else:
         switch = SABNZBD.switch(0,nzbname, '')
         if not "ok" in switch:
             xbmc.log(switch)
             xbmc.executebuiltin('Notification("Pneumatic","Failed to prioritize the nzb!")')
         # TODO make sure there is also a NZB in the queue
-        return True
+        return True, sab_nzo_id
 
 def save_nfo(folder):
     nfo2home.save_nfo(__settings__, folder)
     return
 
-def pre_play(nzbname, mode = None):
+def pre_play(nzbname, **kwargs):
+    mode = kwargs.get('mode', None)
+    sab_nzo_id = kwargs.get('nzo', None)
     iscanceled = False
     folder = os.path.join(INCOMPLETE_FOLDER, nzbname)
-    sab_nzo_id = SABNZBD.nzo_id(nzbname)
-    file_list = utils.list_dir(folder)
+    folder_one = folder + '.1'
+    if os.path.exists(folder_one):
+        folder = folder_one
     sab_file_list = []
     multi_arch_list = []
     if sab_nzo_id is None:
         sab_nzo_id_history = SABNZBD.nzo_id_history(nzbname)
+        nzf_list = utils.dir_to_nzf_list(folder, sabnzbd)
     else:
-        sab_file_list = SABNZBD.file_list(sab_nzo_id)
-        file_list.extend(sab_file_list)
+        nzo = sabnzbd.Nzo(SABNZBD, sab_nzo_id)
+        nzf_list = nzo.nzf_list()
         sab_nzo_id_history = None
-    file_list = utils.sorted_rar_file_list(file_list)
-    multi_arch_list = utils.sorted_multi_arch_list(file_list)
+    sorted_nzf_list = utils.sorted_rar_nzf_file_list(nzf_list)
+    # TODO
+    # If we cant find any rars in the queue, we have to wait for SAB
+    # and then guess the names...
+    # if len(nzf_list) == 0:
+        # iscanceled = get_nzf(folder, sab_nzo_id, None)
+    multi_arch_nzf_list = utils.sorted_multi_arch_nzf_list(sorted_nzf_list)
     # Loop though all multi archives and add file to the 
     play_list = []
-    for arch_rar, byte in multi_arch_list:
+    clean_sorted_nzf_list = utils.nzf_diff_list(sorted_nzf_list, multi_arch_nzf_list)
+    for nzf in multi_arch_nzf_list:
         if sab_nzo_id is not None:
-            t = Thread(target=to_bottom, args=(sab_nzo_id, sab_file_list, file_list,))
+            t = Thread(target=nzf_to_bottom, args=(sab_nzo_id, nzf_list, sorted_nzf_list,))
             t.start()
-            iscanceled = get_rar(folder, sab_nzo_id, arch_rar)
+            iscanceled = get_nzf(folder, sab_nzo_id, nzf)
         if iscanceled:
             break
         else:
             if sab_nzo_id:
                 set_streaming(sab_nzo_id)
             # TODO is this needed?
-            time.sleep(1)
+            # time.sleep(1)
             # RAR ANALYSYS #
-            in_rar_file_list = utils.rar_filenames(folder, arch_rar)
+            in_rar_file_list = utils.rar_filenames(folder, nzf.filename)
             movie_list = utils.sort_filename(in_rar_file_list)
             # Make sure we have a movie
             if not (len(movie_list) >= 1):
@@ -207,26 +220,26 @@ def pre_play(nzbname, mode = None):
             # If auto play is enabled we skip samples in the play_list
             if AUTO_PLAY and mode is not MODE_INCOMPLETE_LIST:
                 for movie_file in movie_no_sample_list:
-                    play_list.append(arch_rar)
+                    play_list.append(nzf.filename)
                     play_list.append(movie_file)
             else:
                 for movie_file in movie_list:
-                    play_list.append(arch_rar)
+                    play_list.append(nzf.filename)
                     play_list.append(movie_file)
-            # If the movie is a .mkv we need the last rar
+            # If the movie is a .mkv or .mp4 we need the last rar
             if utils.is_movie_mkv(movie_list) and sab_nzo_id:
                 # If we have a sample or other file, the second rar is also needed..
                 if len(in_rar_file_list) > 1:
-                    second_rar = utils.find_rar(file_list, 0)
-                    iscanceled = get_rar(folder, sab_nzo_id, second_rar)
-                last_rar = utils.find_rar(file_list, -1)
-                iscanceled =  get_rar(folder, sab_nzo_id, last_rar)
+                    second_nzf = clean_sorted_nzf_list[1]
+                    iscanceled = get_nzf(folder, sab_nzo_id, second_nzf)
+                last_nzf = clean_sorted_nzf_list[-1]
+                iscanceled =  get_nzf(folder, sab_nzo_id, last_nzf)
                 if iscanceled: 
                     break 
     if iscanceled:
         return
     else:
-        rar_file_list = [x[0] for x in file_list]
+        rar_file_list = [x.filename for x in sorted_nzf_list]
         if (len(rar_file_list) >= 1):
             if AUTO_PLAY and ( mode is None or mode is MODE_STRM):
                 video_params = dict()
@@ -279,49 +292,45 @@ def playlist_item(play_list, rar_file_list, folder, sab_nzo_id, sab_nzo_id_histo
         xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=url, listitem=item, isFolder=isfolder)
     xbmcplugin.setContent(HANDLE, 'movies')
     xbmcplugin.endOfDirectory(HANDLE, succeeded=True, cacheToDisc=True)
-    return 
-    
-def get_rar(folder, sab_nzo_id, some_rar):
-    if sab_nzo_id:
-        sab_nzf_id = SABNZBD.nzf_id(sab_nzo_id, some_rar)
-        if sab_nzf_id:
-            SABNZBD.file_list_position(sab_nzo_id, [sab_nzf_id], 0)
-        return wait_for_rar(folder, sab_nzo_id, some_rar)
+    return
+
+def get_nzf(folder, sab_nzo_id, nzf):
+    if sab_nzo_id is not None:
+        if nzf.status.lower() == 'active':
+            SABNZBD.file_list_position(sab_nzo_id, [nzf.nzf_id], 0)
+        return wait_for_nzf(folder, sab_nzo_id, nzf)
     else:
         return False
 
-def wait_for_rar(folder, sab_nzo_id, some_rar):
+def wait_for_nzf(folder, sab_nzo_id, nzf):
     iscanceled = False
     is_rar_found = False
-    # If some_rar exist we skip dialogs
-    for file, bytes in utils.sorted_rar_file_list(utils.list_dir(folder)):
-        if file == some_rar:
-            is_rar_found = True
-            break
+    # If rar exist we skip dialogs
+    some_rar = os.path.join(folder, nzf.filename)
+    if os.path.exists(some_rar):
+        is_rar_found = True
     if not is_rar_found:
         progressDialog = xbmcgui.DialogProgress()
-        progressDialog.create('Pneumatic', 'Request to SABnzbd succeeded, waiting for ', utils.short_string(some_rar))
+        progressDialog.create('Pneumatic', 'Request to SABnzbd succeeded, waiting for ', utils.short_string(nzf.filename))
         time_now = time.time()
         while not is_rar_found:
             time.sleep(1)
-            dirList = utils.sorted_rar_file_list(utils.list_dir(folder))
-            for file, bytes in dirList:
-                if file == some_rar:
-                    path = os.path.join(folder,file)
-                    # Wait until the file is written to disk before proceeding
-                    size_now = int(bytes)
-                    size_later = 0
-                    while (size_now != size_later) or (size_now == 0) or (size_later == 0):
-                        size_now = os.stat(path).st_size
-                        if size_now != size_later:
-                            time.sleep(0.5)
-                            size_later = os.stat(path).st_size
-                    is_rar_found = True
-                    break
+            if os.path.exists(some_rar):
+                # TODO Look for optimization
+                # Wait until the file is written to disk before proceeding
+                size_now = int(nzf.bytes)
+                size_later = 0
+                while (size_now != size_later) or (size_now == 0) or (size_later == 0):
+                    size_now = os.stat(some_rar).st_size
+                    if size_now != size_later:
+                        time.sleep(0.5)
+                        size_later = os.stat(some_rar).st_size
+                is_rar_found = True
+                break
             nzo = sabnzbd.Nzo(SABNZBD, sab_nzo_id)
-            nzf = nzo.get_nzf(some_rar)
-            percent, label = utils.wait_for_rar_label(nzo, nzf, time_now)
-            progressDialog.update(percent, 'Request to SABnzbd succeeded, waiting for', utils.short_string(some_rar), label)
+            m_nzf = nzo.get_nzf_id(nzf.nzf_id)
+            percent, label = utils.wait_for_rar_label(nzo, m_nzf, time_now)
+            progressDialog.update(percent, 'Request to SABnzbd succeeded, waiting for', utils.short_string(nzf.filename), label)
             if progressDialog.iscanceled():
                 dialog = xbmcgui.Dialog()
                 ret = dialog.select('What do you want to do?', ['Delete job', 'Just download'])
@@ -350,6 +359,11 @@ def to_bottom(sab_nzo_id, sab_file_list, file_list):
     SABNZBD.file_list_position(sab_nzo_id, nzf_list, 3)
     return
 
+def nzf_to_bottom(sab_nzo_id, nzf_list, sorted_nzf_list):
+    diff_list = list(set([nzf.nzf_id for nzf in nzf_list])-set([nzf.nzf_id for nzf in sorted_nzf_list]))
+    SABNZBD.file_list_position(sab_nzo_id, diff_list, 3)
+    return
+
 def list_movie(params):
     get = params.get
     mode = get("mode")
@@ -363,7 +377,8 @@ def list_movie(params):
 
 def list_incomplete(params):
     nzbname = utils.unquote_plus(params.get("nzbname"))
-    pre_play(nzbname, MODE_INCOMPLETE_LIST)
+    sab_nzo_id = utils.unquote_plus(params.get("nzoid"))
+    pre_play(nzbname, mode=MODE_INCOMPLETE_LIST, nzo=sab_nzo_id)
 
 def play_video(params):
     get = params.get
@@ -395,8 +410,6 @@ def play_video(params):
         xbmcplugin.setContent(HANDLE, 'movies')
         wait = 0
         player = xbmcplayer.XBMCPlayer(xbmc.PLAYER_CORE_DVDPLAYER)
-        # DEBUG
-        # if mode == MODE_AUTO_PLAY:
         if mode == MODE_AUTO_PLAY or mode == MODE_LIST_PLAY:
             player.play( raruri, item )
         else:
@@ -607,6 +620,9 @@ def incomplete():
                   "&folder=" + utils.quote_plus(row[0])
             info = nfo.ReadNfoLabels(os.path.join(INCOMPLETE_FOLDER, row[0]))
             add_posts(info.info_labels, url, MODE_INCOMPLETE_LIST, info.thumbnail, info.fanart)
+        else:
+            # Clean out a failed SABnzbd folder removal
+            utils.dir_exists(os.path.join(INCOMPLETE_FOLDER, row[0]), None)
     xbmcplugin.setContent(HANDLE, 'movies')
     xbmcplugin.endOfDirectory(HANDLE, succeeded=True, cacheToDisc=True)
     return
@@ -660,9 +676,10 @@ if (__name__ == "__main__" ):
             params = utils.get_parameters(sys.argv[2])
             get = params.get
             if get("mode")== MODE_PLAY:
-                if is_nzb_home(params):
+                is_home, sab_nzo_id = is_nzb_home(params)
+                if is_home:
                     nzbname = utils.unquote_plus(get("nzbname"))
-                    pre_play(nzbname)
+                    pre_play(nzbname, nzo=sab_nzo_id)
             if get("mode")== MODE_LIST_PLAY or get("mode")== MODE_AUTO_PLAY:
                 play_video(params)
             if get("mode")== MODE_DELETE:
@@ -678,9 +695,10 @@ if (__name__ == "__main__" ):
             if get("mode")== MODE_STRM:
                 xbmc.executebuiltin('Dialog.Close(all, true)')
                 time.sleep(2)
-                if is_nzb_home(params):
+                is_home, sab_nzo_id = is_nzb_home(params)
+                if is_home:
                     nzbname = utils.unquote_plus(get("nzbname"))
-                    pre_play(nzbname, MODE_STRM)
+                    pre_play(nzbname, mode=MODE_STRM, nzo=sab_nzo_id)
             if get("mode")== MODE_SAVE_STRM:
                 nzbname = utils.unquote_plus(get("nzbname"))
                 nzb = utils.unquote_plus(get("nzb"))
@@ -689,8 +707,9 @@ if (__name__ == "__main__" ):
             if get("mode")== MODE_ADD_LOCAL:
                 params = add_local_nzb()
                 if params is not None:
-                    if is_nzb_home(params): 
+                    is_home, sab_nzo_id = is_nzb_home(params)
+                    if is_home: 
                         nzbname = params.get("nzbname")
-                        pre_play(nzbname)
+                        pre_play(nzbname, nzo=sab_nzo_id)
                 
 

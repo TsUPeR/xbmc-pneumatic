@@ -31,14 +31,20 @@ import xbmc
 import xbmcgui
 import time
 import math
+import shutil
 
 import rarfile
 
-RE_PART = '.part\d{2,3}.rar$'
-RE_PART01 = '.part0{1,2}1.rar$'
-RE_R = '.r\d{2,3}$'
+RE_PART_X = r'(\S*?\.part\d{1,3}\.rar)'
+RE_PART01_X = '(\S*?\.part0{0,2}1\.rar)'
+RE_R_X = r'(\S*?\.r\d{2,3})'
+RE_RAR_X = r'(\S*?\.rar)'
+RE_PART = '\.part\d{2,3}\.rar$'
+RE_PART01 = '\.part0{1,2}1\.rar$'
+RE_R = '\.r\d{2,3}$'
 RE_MOVIE = '\.avi$|\.mkv$|\.iso$|\.img$'
-RE_SAMPLE = 'sample'
+# https://github.com/sabnzbd/sabnzbd/blob/develop/sabnzbd/constants.py#L142
+RE_SAMPLE = r'((^|[\W_])sample\d*[\W_])|(-s\.)'
 RE_MKV = '\.mkv$|\.mp4$'
 RE_HTML = '&(\w+?);'
 
@@ -53,6 +59,13 @@ def write_fake(file_list, folder):
             fd = open(filename,'wb')
             fd.write(RAR_HEADER)
             fd.close()
+        # Clean out 7 byte files if present
+        else:
+            if os.stat(filename).st_size == 7:
+                os.remove(filename)
+                filename_one = os.path.join(folder, (filebasename + ".1"))
+                if os.path.exists(filename_one):
+                    os.rename(filename_one, filename)
     return
 
 def remove_fake(file_list, folder):
@@ -66,29 +79,49 @@ def remove_fake(file_list, folder):
                     os.rename(filename_one, filename)
     return
 
-def sorted_rar_file_list(rar_file_list):
+def sorted_rar_nzf_file_list(nzf_list):
     file_list = []
-    if len(rar_file_list) > 0:
-        for file, bytes in rar_file_list:
-            partrar = re.findall(RE_PART, file)
-            rrar = re.findall(RE_R, file)
-            if ((file.endswith(".rar") and not partrar) or partrar or rrar):
-                file_list.append([file, bytes])
+    if len(nzf_list) > 0:
+        for nzf in nzf_list:
+            partrar = re.findall(RE_PART, nzf.filename)
+            rrar = re.findall(RE_R, nzf.filename)
+            if ((nzf.filename.endswith(".rar") and not partrar) or partrar or rrar):
+                file_list.append(nzf)
+            else:
+                partrar_x = re.search(RE_PART_X, nzf.filename)
+                rrar_x = re.search(RE_R_X, nzf.filename)
+                rarrar_x = re.search(RE_RAR_X, nzf.filename)
+                out = None
+                if (rarrar_x and not partrar_x):
+                    out = rarrar_x.group(1)
+                elif partrar_x:
+                    out = partrar_x.group(1)
+                elif rrar_x:
+                    out = rrar_x.group(1)
+                if out is not None:
+                    nzf.filename = out
+                    file_list.append(nzf)
         if len(file_list) > 1:
-            file_list.sort()
+            file_list.sort(key=lambda x: x.filename)
     return file_list
 
-def sorted_multi_arch_list(rar_file_list):
+def sorted_multi_arch_nzf_list(nzf_list):
     file_list = []
-    for file, bytes in rar_file_list:
-        partrar = re.findall(RE_PART, file)
-        part01rar = re.findall(RE_PART01, file)
+    for nzf in nzf_list:
+        partrar_x = re.findall(RE_PART_X, nzf.filename)
+        part01rar_x = re.findall(RE_PART01_X, nzf.filename)
+        rarrar_x = re.search(RE_RAR_X, nzf.filename)
         # No small sub archives
-        if ((file.endswith(".rar") and not partrar) or part01rar) and bytes > RAR_MIN_SIZE:
-            file_list.append([file, bytes])
+        if ((rarrar_x and not partrar_x) or part01rar_x) and nzf.bytes > RAR_MIN_SIZE:
+            file_list.append(nzf)
     if len(file_list) > 1:
-        file_list.sort()
+        file_list.sort(key=lambda x: x.filename)
     return file_list
+
+def nzf_diff_list(list_a, list_b):
+    nzf_list = list(set(list_a)-set(list_b))
+    nzf_list.sort(key=lambda x: x.filename)
+    return nzf_list
 
 def list_dir(folder):
     file_list = []
@@ -100,16 +133,25 @@ def list_dir(folder):
         file_list.append(row)
     return file_list
 
-def find_rar(file_list, index):
-    rar_list = []
-    for file, bytes in file_list:
-        partrar = re.findall(RE_PART, file)
-        rrar = re.findall(RE_R, file)
-        if partrar or rrar:
-            rar_list.append(file)
-    if len(rar_list) > 1:
-        rar_list.sort()
-    return rar_list[index]
+def dir_to_nzf_list(folder, sabnzbd):
+    nzf_list = []
+    file_list = list_dir(folder)
+    for filename, bytes in file_list:
+        nzf = sabnzbd.Nzf(filename=filename, bytes=bytes)
+        nzf_list.append(nzf)
+    return nzf_list
+
+def dir_exists(folder, nzo_id):
+    if os.path.exists(folder):
+        dir_list = os.listdir(folder)
+        if len(dir_list) < 2 and nzo_id is None:
+            # Clean out a failed SABnzbd folder removal
+            shutil.rmtree(folder)
+            return False
+        return True
+    else:
+        return False
+    return exists
 
 def rar_filenames(folder, file):
     filepath = os.path.join(folder, file)
