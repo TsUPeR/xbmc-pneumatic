@@ -132,7 +132,6 @@ def is_nzb_home(params):
                         if not "ok" in delete_msg:
                             xbmc.log(delete_msg)
                     iscanceled = True
-                    progressDialog.close()
                     break
                 time.sleep(1)
                 seconds += 1
@@ -142,7 +141,6 @@ def is_nzb_home(params):
                     xbmc.log(switch)
                     progressDialog.update(0, 'Failed to prioritize the nzb!')
                     time.sleep(2)
-                progressDialog.close()
                 # Dont add meta data for local nzb's
                 if type == 'addurl':
                     t = Thread(target=save_nfo, args=(folder,))
@@ -153,8 +151,7 @@ def is_nzb_home(params):
         else:
             xbmc.log(response)
             # Fix for hang when playing .strm
-            xbmc.Player().stop()
-            progressDialog.close()
+            xbmc.Player().stop()            
             notification("Request to SABnzbd failed!")
             return False, sab_nzo_id
     else:
@@ -338,7 +335,6 @@ def wait_for_nzf(folder, sab_nzo_id, nzf):
                 # Fix for hang when playing .strm
                 xbmc.Player().stop()
                 xbmc.executebuiltin('Dialog.Close(all, true)')
-                progressDialog.close()
                 if ret == 0:
                     pause = SABNZBD.pause('',sab_nzo_id)
                     time.sleep(3)
@@ -351,7 +347,6 @@ def wait_for_nzf(folder, sab_nzo_id, nzf):
                 elif ret == 1:
                     notification("Downloading")
                 return True
-        progressDialog.close()
     return iscanceled
 
 def to_bottom(sab_nzo_id, sab_file_list, file_list):
@@ -553,7 +548,6 @@ def download(params):
         xbmc.log(addurl)
         progressDialog.update(0, 'Request to SABnzbd failed!')
         time.sleep(2)
-    progressDialog.close()
     return
 
 def get_category(ask = False):
