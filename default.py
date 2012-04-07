@@ -73,6 +73,7 @@ MODE_INCOMPLETE_LIST = "incomplete_list"
 MODE_STRM = "strm"
 MODE_SAVE_STRM = "save_strm"
 MODE_LOCAL = "local"
+MODE_LOCAL_LIST_TOP = "local_list_top"
 MODE_LOCAL_LIST = "local_list"
 MODE_ADD_LOCAL = "add_local"
 MODE_DEL_LOCAL = "del_local"
@@ -91,7 +92,7 @@ def add_posts(info_labels, url, mode, thumb='', fanart='', folder=True):
         cm_url_delete_all = sys.argv[0] + '?' + "mode=delete&delete_all=True&incomplete=True" + url
         cm.append(("Delete all inactive" , "XBMC.RunPlugin(%s)" % (cm_url_delete_all)))
         listitem.addContextMenuItems(cm, replaceItems=True)
-    if mode == MODE_LOCAL_LIST:
+    if mode == MODE_LOCAL_LIST_TOP:
         cm = []
         cm_url_add_local = sys.argv[0] + '?' + "mode=add_local"
         cm.append(("Add folder" , "XBMC.RunPlugin(%s)" % (cm_url_add_local)))
@@ -644,7 +645,7 @@ def local():
             folder_name = os.path.split(os.path.dirname(folder_path))[1]
             if len(folder_path) > 1:
                 url = "&type=" + type + "&folder=" + utils.quote_plus(folder_path)
-                add_posts({'title':folder_name}, url, MODE_LOCAL_LIST, '', '')
+                add_posts({'title':folder_name}, url, MODE_LOCAL_LIST_TOP, '', '')
     xbmcplugin.setContent(HANDLE, 'movies')
     xbmcplugin.endOfDirectory(HANDLE, succeeded=True, cacheToDisc=True)
 
@@ -792,7 +793,7 @@ if (__name__ == "__main__" ):
                 t.start()
             if get("mode")== MODE_LOCAL:
                 local()
-            if get("mode")== MODE_LOCAL_LIST:
+            if get("mode")== MODE_LOCAL_LIST or get("mode")== MODE_LOCAL_LIST_TOP:
                 list_local(params)
             if get("mode")== MODE_ADD_LOCAL:
                 add_local()
