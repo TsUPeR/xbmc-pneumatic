@@ -72,7 +72,10 @@ MODE_INCOMPLETE = "incomplete"
 MODE_INCOMPLETE_LIST = "incomplete_list"
 MODE_STRM = "strm"
 MODE_SAVE_STRM = "save_strm"
+MODE_LOCAL = "local"
+MODE_LOCAL_LIST = "local_list"
 MODE_ADD_LOCAL = "add_local"
+MODE_DEL_LOCAL = "del_local"
 
 def add_posts(info_labels, url, mode, thumb='', fanart='', folder=True):
     listitem=xbmcgui.ListItem(info_labels['title'], iconImage="DefaultVideo.png", thumbnailImage=thumb)
@@ -87,6 +90,13 @@ def add_posts(info_labels, url, mode, thumb='', fanart='', folder=True):
         cm.append(("Delete" , "XBMC.RunPlugin(%s)" % (cm_url_delete)))
         cm_url_delete_all = sys.argv[0] + '?' + "mode=delete&delete_all=True&incomplete=True" + url
         cm.append(("Delete all inactive" , "XBMC.RunPlugin(%s)" % (cm_url_delete_all)))
+        listitem.addContextMenuItems(cm, replaceItems=True)
+    if mode == MODE_LOCAL_LIST:
+        cm = []
+        cm_url_add_local = sys.argv[0] + '?' + "mode=add_local"
+        cm.append(("Add folder" , "XBMC.RunPlugin(%s)" % (cm_url_add_local)))
+        cm_url_delete_local = sys.argv[0] + '?' + "mode=del_local" + url
+        cm.append(("Remove folder" , "XBMC.RunPlugin(%s)" % (cm_url_delete_local)))
         listitem.addContextMenuItems(cm, replaceItems=True)
     return xbmcplugin.addDirectoryItem(handle=HANDLE, url=xurl, listitem=listitem, isFolder=folder)
     
@@ -620,6 +630,86 @@ def incomplete():
     xbmcplugin.endOfDirectory(HANDLE, succeeded=True, cacheToDisc=True)
     return
 
+def local():
+    if IS_SAB_LOCAL:
+        type = 'add_local'
+    else:
+        type = 'add_file'
+    folder_list = __settings__.getSetting('nzb_folder_list').split(';')
+    if len(folder_list) == 1 and len(folder_list[0]) == 0:
+        add_posts({'title':'Add folder'}, '', MODE_ADD_LOCAL, '', '', False)
+    else:
+        for folder in folder_list:
+            folder_path = unicode(folder, 'utf-8')
+            folder_name = os.path.split(os.path.dirname(folder_path))[1]
+            if len(folder_path) > 1:
+                url = "&type=" + type + "&folder=" + utils.quote_plus(folder_path)
+                add_posts({'title':folder_name}, url, MODE_LOCAL_LIST, '', '')
+    xbmcplugin.setContent(HANDLE, 'movies')
+    xbmcplugin.endOfDirectory(HANDLE, succeeded=True, cacheToDisc=True)
+
+def list_local(params):
+    top_folder = utils.unquote_plus(params.get("folder"))
+    type = utils.unquote_plus(params.get("type"))
+    for folder in os.listdir(top_folder):
+        folder_path = os.path.join(top_folder, folder)
+        if os.path.isdir(folder_path):
+            # Check if the folder contains a single nzb and no folders
+            nzb_list = []
+            folder_list = []
+            for name in os.listdir(folder_path):
+                name_path = os.path.join(folder_path, name)
+                if os.path.isfile(name_path) and os.path.splitext(name_path)[1] == '.nzb':
+                    nzb_list.append(name_path)
+                elif os.path.isdir(name_path):
+                    folder_list.append(name_path)
+            # If single nzb allow the folder to be playable and show info
+            if len(nzb_list) == 1 and len(folder_list) == 0:
+                # Fixing the naming of nzb according to SAB rules
+                nzb_name = nzb.Nzbname(os.path.basename(nzb_list[0])).final_name
+                if folder.lower() == nzb_name.lower():
+                    info = nfo.ReadNfoLabels(folder_path)
+                    info.info_labels['title'] = info.info_labels['title']
+                    url = "&nzbname=" + utils.quote_plus(nzb_name) +\
+                          "&nzb=" + utils.quote_plus(nzb_list[0]) + "&type=" + type
+                    add_posts(info.info_labels, url, MODE_PLAY, info.thumbnail, info.fanart, False)
+                else:
+                    url = "&type=" + type + "&folder=" + utils.quote_plus(folder_path)
+                    add_posts({'title':folder}, url, MODE_LOCAL_LIST, '', '')
+            else:
+                url = "&type=" + type + "&folder=" + utils.quote_plus(folder_path)
+                add_posts({'title':folder}, url, MODE_LOCAL_LIST, '', '')
+        elif os.path.isfile(folder_path) and os.path.splitext(folder)[1] == '.nzb':
+            url = "&nzbname=" + utils.quote_plus(nzb.Nzbname(folder).final_name) +\
+                  "&nzb=" + utils.quote_plus(folder_path) + "&type=" + type
+            add_posts({'title':folder}, url, MODE_PLAY, '', '', False)
+    xbmcplugin.setContent(HANDLE, 'movies')
+    xbmcplugin.endOfDirectory(HANDLE, succeeded=True, cacheToDisc=True)
+    return
+
+def add_local():
+    dialog = xbmcgui.Dialog()
+    nzb_file = dialog.browse(0, 'Pick a folder', 'files')
+    # XBMC outputs utf-8
+    path = unicode(nzb_file, 'utf-8')
+    if not os.path.isdir(path):
+        return None
+    else:
+        folder_list = __settings__.getSetting("nzb_folder_list").split(';')
+        folder_list.append(nzb_file)
+        new_folder_list = ';'.join(folder_list)
+        __settings__.setSetting("nzb_folder_list", new_folder_list)
+        xbmc.executebuiltin("Container.Refresh")
+
+def del_local(params):
+    folder = utils.unquote_plus(params.get("folder"))
+    folder_path = folder.encode('utf-8')
+    folder_list = __settings__.getSetting("nzb_folder_list").split(';')
+    folder_list.remove(folder_path)
+    new_folder_list = ';'.join(folder_list)
+    __settings__.setSetting("nzb_folder_list", new_folder_list)
+    xbmc.executebuiltin("Container.Refresh")
+
 #From old undertexter.se plugin    
 def unikeyboard(default, message):
     keyboard = xbmc.Keyboard(default, message)
@@ -665,7 +755,7 @@ if (__name__ == "__main__" ):
     else:
         if (not sys.argv[2]):
             add_posts({'title':'Incomplete'}, '', MODE_INCOMPLETE)
-            add_posts({'title':'Browse local NZB\'s'}, '', MODE_ADD_LOCAL, '', '', False)
+            add_posts({'title':'Browse local NZB\'s'}, '', MODE_LOCAL, '', '')
             xbmcplugin.setContent(HANDLE, 'movies')
             xbmcplugin.endOfDirectory(HANDLE, succeeded=True, cacheToDisc=True)
         else:
@@ -700,12 +790,11 @@ if (__name__ == "__main__" ):
                 nzb = utils.unquote_plus(get("nzb"))
                 t = Thread(target=save_strm, args=(nzbname, nzb,))
                 t.start()
+            if get("mode")== MODE_LOCAL:
+                local()
+            if get("mode")== MODE_LOCAL_LIST:
+                list_local(params)
             if get("mode")== MODE_ADD_LOCAL:
-                params = add_local_nzb()
-                if params is not None:
-                    is_home, sab_nzo_id = is_nzb_home(params)
-                    if is_home: 
-                        nzbname = params.get("nzbname")
-                        pre_play(nzbname, nzo=sab_nzo_id)
-                
-
+                add_local()
+            if get("mode")== MODE_DEL_LOCAL:
+                del_local(params) 
