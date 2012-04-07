@@ -461,11 +461,11 @@ class Nzo:
 class Nzf:
     def __init__(self, **kwargs):
         self.status = kwargs.get('status')
-        self.mb = kwargs.get('mb')
+        self.mb = kwargs.get('mb', 0)
         self.age = kwargs.get('age')
-        self.bytes = kwargs.get('bytes')
+        self.bytes = kwargs.get('bytes', 0)
         self.filename = kwargs.get('filename')
         self.subject = kwargs.get('subject', self.filename)
-        self.mbleft = kwargs.get('mbleft')
+        self.mbleft = kwargs.get('mbleft', 0)
         self.nzf_id = kwargs.get('nzf_id', None)
         self.id = kwargs.get('id')
