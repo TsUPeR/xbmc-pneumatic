@@ -84,7 +84,9 @@ class Tvshow:
     def save(self):
         show_name = None
         if self.rageid is not None:
-            show_name = unicode(self.rageid_show_name(self.rageid), 'utf-8')
+            show_name = self.rageid_show_name(self.rageid)
+            if show_name is not None:
+                show_name = unicode(show_name, 'utf-8')
         if show_name is None:
             manual_name = unikeyboard(self.nzbname, 'Enter show name')
             if manual_name is None:
