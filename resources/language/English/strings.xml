@@ -23,6 +23,8 @@
     <string id="30022">Save episode.nfo</string>
     <string id="30023">Save poster</string>
     <string id="30024">Save fanart</string>
+    <string id="30028">Save nzb to cache when saving strm</string>
+    <string id="30042">NZB cache</string>
     <!-- .strm -->
     <string id="30033">Strm Storage</string>
     <string id="30031">Movies</string>
@@ -30,7 +32,7 @@
     <string id="30030">Library</string>
     <!-- .strm -->
     <string id="30040">NZB</string>
-    <string id="30041">Local NZB</string>
-    <string id="30042">NZB storage</string>
+    <string id="30041">Cache</string>
+    <string id="30042">NZB cache</string>
     <string id="30043">SABnzbd and XBMC is on the same computer</string>
 </strings>

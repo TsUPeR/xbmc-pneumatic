@@ -26,6 +26,7 @@
 import os
 import sys
 import locale
+import urllib2
 
 WIN32 = (sys.platform == 'win32')
 DARWIN = sys.platform.startswith('darwin')
@@ -161,3 +162,34 @@ def sanitize_foldername(name):
         name = name[:maxlen]
 
     return name
+
+def save(url, nzb_path):
+    file, e = _load_nzb(url)
+    if e is None:
+        with open(nzb_path, "wb") as out:
+            try:
+                out.write(file)
+            except:
+                e = "Pneumatic failed writing %s" % nzb_path
+            else:
+                e = "Pneumatic saved %s" % nzb_path
+    print e
+    return
+
+def _load_nzb(url):
+    req = urllib2.Request(url)
+    try:
+        response = urllib2.urlopen(req)
+    except urllib2.URLError, ex:
+        if hasattr(ex, 'reason'):
+            print ex.reason
+            e = ex.reason
+            return None, e
+        elif hasattr(ex, 'code'):
+            e = ex.code + " " + url
+            return None, e
+    else:
+        doc = response.read()
+        response.close()
+        return doc, None
+    

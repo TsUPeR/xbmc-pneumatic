@@ -45,7 +45,7 @@ import strm
 import xbmcplayer
 import nfo2home
 import strm2lib
-import nzb
+import nzb as m_nzb
 
 __settings__ = xbmcaddon.Addon(id='plugin.program.pneumatic')
 __language__ = __settings__.getLocalizedString
@@ -58,6 +58,8 @@ SABNZBD = sabnzbd.Sabnzbd(__settings__.getSetting("sabnzbd_ip"),
 INCOMPLETE_FOLDER = unicode(__settings__.getSetting("sabnzbd_incomplete"), 'utf-8')
 
 NZB_FOLDER = __settings__.getSetting("nzb_folder")
+SAVE_NZB = (__settings__.getSetting("save_nzb").lower() == "true")
+NZB_CACHE = __settings__.getSetting("nzb_cache")
 IS_SAB_LOCAL = (__settings__.getSetting("is_sab_local").lower() == "true")
 
 AUTO_PLAY = (__settings__.getSetting("auto_play").lower() == "true")
@@ -114,6 +116,8 @@ def is_nzb_home(params):
         progressDialog = xbmcgui.DialogProgress()
         progressDialog.create('Pneumatic', 'Sending request to SABnzbd')
         category = get_category()
+        if type == 'addurl':
+            type, nzb = nzb_cache(type, nzb, nzbname)
         # SABnzbd and URI should be latin-1 encoded
         if type == 'addurl':
             response = SABNZBD.addurl(nzb.encode('latin-1'), nzbname, category=category)
@@ -172,6 +176,17 @@ def is_nzb_home(params):
             notification("Failed to prioritize the nzb!")
         # TODO make sure there is also a NZB in the queue
         return True, sab_nzo_id
+
+def nzb_cache(type, nzb, nzbname):
+    nzb_path = os.path.join(NZB_CACHE, '%s%s' % (nzbname, '.nzb'))
+    if os.path.exists(nzb_path):
+        nzb = nzb_path
+        if IS_SAB_LOCAL:
+            type = 'add_local'
+        else:
+            type = 'add_file'
+        xbmc.log("Pneumatic loading %s from cache" % nzb)
+    return type, nzb
 
 def save_nfo(folder):
     nfo2home.save_nfo(__settings__, folder)
@@ -667,7 +682,7 @@ def list_local(params):
             # If single nzb allow the folder to be playable and show info
             if len(nzb_list) == 1 and len(folder_list) == 0:
                 # Fixing the naming of nzb according to SAB rules
-                nzb_name = nzb.Nzbname(os.path.basename(nzb_list[0])).final_name
+                nzb_name = m_nzb.Nzbname(os.path.basename(nzb_list[0])).final_name
                 if folder.lower() == nzb_name.lower():
                     info = nfo.ReadNfoLabels(folder_path)
                     info.info_labels['title'] = info.info_labels['title']
@@ -681,7 +696,7 @@ def list_local(params):
                 url = "&type=" + type + "&folder=" + utils.quote_plus(folder_path)
                 add_posts({'title':folder}, url, MODE_LOCAL_LIST, '', '')
         elif os.path.isfile(folder_path) and os.path.splitext(folder)[1] == '.nzb':
-            url = "&nzbname=" + utils.quote_plus(nzb.Nzbname(folder).final_name) +\
+            url = "&nzbname=" + utils.quote_plus(m_nzb.Nzbname(folder).final_name) +\
                   "&nzb=" + utils.quote_plus(folder_path) + "&type=" + type
             add_posts({'title':folder}, url, MODE_PLAY, '', '', False)
     xbmcplugin.setContent(HANDLE, 'movies')
@@ -720,8 +735,11 @@ def unikeyboard(default, message):
     else:
         return ""
 
-def save_strm(nzbname, nzb):
-    strm2lib.save_strm(__settings__, nzbname, nzb)
+def save_strm(nzbname, url):
+    strm2lib.save_strm(__settings__, nzbname, url)
+    if SAVE_NZB and os.path.exists(NZB_CACHE):
+        nzb_path = os.path.join(NZB_CACHE, '%s%s' % (nzbname, '.nzb'))
+        m_nzb.save(url, nzb_path)
 
 def add_local_nzb():
     if not os.path.exists(NZB_FOLDER):
@@ -736,7 +754,7 @@ def add_local_nzb():
     else:
         params = dict()
         # Fixing the naming of nzb according to SAB rules
-        params['nzbname'] = nzb.Nzbname(os.path.basename(path)).final_name
+        params['nzbname'] = m_nzb.Nzbname(os.path.basename(path)).final_name
         params['nzb'] = path
         if IS_SAB_LOCAL:
             params['type'] = 'add_local'
