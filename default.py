@@ -375,14 +375,8 @@ def wait_for_nzf(folder, sab_nzo_id, nzf):
                 return True
     return iscanceled
 
-def to_bottom(sab_nzo_id, sab_file_list, file_list):
-    diff_list = list(set([x[0] for x in sab_file_list])-set([x[0] for x in file_list]))
-    nzf_list = SABNZBD.nzf_id_list(sab_nzo_id, diff_list)
-    SABNZBD.file_list_position(sab_nzo_id, nzf_list, 3)
-    return
-
 def nzf_to_bottom(sab_nzo_id, nzf_list, sorted_nzf_list):
-    diff_list = list(set([nzf.nzf_id for nzf in nzf_list])-set([nzf.nzf_id for nzf in sorted_nzf_list]))
+    diff_list = list(set([nzf.nzf_id for nzf in nzf_list if nzf.nzf_id is not None])-set([nzf.nzf_id for nzf in sorted_nzf_list if nzf.nzf_id is not None]))
     SABNZBD.file_list_position(sab_nzo_id, diff_list, 3)
     return
 
