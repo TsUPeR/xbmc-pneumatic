@@ -263,8 +263,12 @@ def short_string(input):
         return output
 
 def wait_for_rar_label(nzo, nzf, time_then):
-    mb = nzf.mb
-    mbleft = nzf.mbleft
+    if nzf is None:
+        mb = 1
+        mbleft = 0
+    else:
+        mb = nzf.mb
+        mbleft = nzf.mbleft
     s = time.time() - time_then
     if mbleft > 0:
         percent = math.floor(((mb-mbleft)/mb)*100)
