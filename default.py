@@ -286,7 +286,6 @@ def set_streaming(sab_nzo_id):
     if not "ok" in setstreaming:
         xbmc.log(setstreaming)
         notification('Post process request to SABnzbd failed!')
-        #xbmc.executebuiltin('Notification("Pneumatic","Post process request to SABnzbd failed!", 500, ' + __icon__ + ')')
         time.sleep(1)
     return
 
