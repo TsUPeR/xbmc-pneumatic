@@ -147,6 +147,7 @@ def dir_exists(folder, nzo_id):
         if len(dir_list) < 2 and nzo_id is None:
             # Clean out a failed SABnzbd folder removal
             shutil.rmtree(folder)
+            xbmc.log('Pneumatic removed empty incomplete folder %s' % folder)
             return False
         return True
     else:
