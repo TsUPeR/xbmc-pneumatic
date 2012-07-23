@@ -37,11 +37,11 @@ import rarfile
 
 RE_PART_X = r'(\S*?\.part\d{1,3}\.rar)'
 RE_PART01_X = '(\S*?\.part0{0,2}1\.rar)'
-RE_R_X = r'(\S*?\.r\d{2,3})'
+RE_R_X = r'(\S*?\.[rs]\d{2,3})'
 RE_RAR_X = r'(\S*?\.rar)'
 RE_PART = '\.part\d{2,3}\.rar$'
 RE_PART01 = '\.part0{1,2}1\.rar$'
-RE_R = '\.r\d{2,3}$'
+RE_R = '\.[rs]\d{2,3}$'
 RE_MOVIE = '\.avi$|\.mkv$|\.iso$|\.img$'
 # https://github.com/sabnzbd/sabnzbd/blob/develop/sabnzbd/constants.py#L142
 RE_SAMPLE = r'((^|[\W_])sample\d*[\W_])|(-s\.)'
