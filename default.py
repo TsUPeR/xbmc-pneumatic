@@ -424,7 +424,7 @@ def play_video(params):
         item.setProperty("IsPlayable", "true")
         xbmcplugin.setContent(HANDLE, 'movies')
         wait = 0
-        player = xbmcplayer.XBMCPlayer(xbmc.PLAYER_CORE_DVDPLAYER)
+        player = xbmcplayer.XBMCPlayer(xbmc.PLAYER_CORE_AUTO)
         player.sleep(1000)
         if mode == MODE_AUTO_PLAY or mode == MODE_LIST_PLAY:
             player.play( raruri, item )
