@@ -392,7 +392,7 @@ def list_movie(params):
 
 def list_incomplete(params):
     nzbname = utils.unquote_plus(params.get("nzbname"))
-    sab_nzo_id = utils.unquote_plus(params.get("nzoid"))
+    sab_nzo_id = params.get("nzoid")
     pre_play(nzbname, mode=MODE_INCOMPLETE_LIST, nzo=sab_nzo_id)
 
 def play_video(params):
