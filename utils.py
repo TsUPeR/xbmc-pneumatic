@@ -152,7 +152,6 @@ def dir_exists(folder, nzo_id):
         return True
     else:
         return False
-    return exists
 
 def rar_filenames(folder, file):
     filepath = os.path.join(folder, file)
