@@ -381,7 +381,7 @@ class Nzo:
         self._get_queue()
 
     def _get_queue(self):
-        # Limit to "only" 100 items
+        # Limit to "only" 50 items
         url = "%s&mode=queue&start=0&limit=100&output=xml" % self.sabnzbd.baseurl
         doc = _load_xml(url)
         if doc:
