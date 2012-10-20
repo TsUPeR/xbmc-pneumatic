@@ -389,9 +389,11 @@ class Nzo:
             queue = doc.getElementsByTagName("queue")
             self.speed = get_node_value(queue[0], "speed")
             slots = doc.getElementsByTagName("slot")
+            self.is_in_queue = False
             if slots:
                 for slot in slots:
                     if self.nzo_id == get_node_value(slot, "nzo_id"):
+                        self.is_in_queue = True
                         self.status = get_node_value(slot, "status")
                         self.index = get_node_value(slot, "index")
                         self.eta = get_node_value(slot, "eta")

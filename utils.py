@@ -274,7 +274,10 @@ def wait_for_rar_label(nzo, nzf, time_then):
         percent = math.floor(((mb-mbleft)/mb)*100)
     else:
         percent = 100
-    label = "%.0fs | %.2fMB | %sB/s | Total ETA: %s" % (s, mbleft, nzo.speed, nzo.timeleft)
+    if nzo.is_in_queue:
+        label = "%.0fs | %.2fMB | %sB/s | Total ETA: %s" % (s, mbleft, nzo.speed, nzo.timeleft)
+    else:
+        label = "This item is missing from the SABnzb queue"
     return int(percent), label
 
 def notification(label, icon):
