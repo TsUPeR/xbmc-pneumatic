@@ -75,7 +75,7 @@ class Sabnzbd:
     def delete_queue(self, nzbname='', id=''):
         if nzbname:
             sab_nzo_id = self.nzo_id(nzbname)
-            url = self.baseurl + "&mode=queue&name=delete&del_files=1value=" + str(sab_nzo_id)
+            url = self.baseurl + "&mode=queue&name=delete&del_files=1&value=" + str(sab_nzo_id)
             responseMessage = self._sabResponse(url)
         elif id:
             url = self.baseurl + "&mode=queue&name=delete&del_files=1&value=" + str(id)
