@@ -110,8 +110,7 @@ def is_nzb_home(params):
     folder = os.path.join(INCOMPLETE_FOLDER, nzbname)
     iscanceled = False
     type = get('type', 'addurl')
-    sab_nzo_id = SABNZBD.nzo_id(nzbname)
-    # if not os.path.exists(folder):
+    sab_nzo_id = SABNZBD.nzo_id(nzbname, nzb)
     if not utils.dir_exists(folder, sab_nzo_id):
         progressDialog = xbmcgui.DialogProgress()
         progressDialog.create('Pneumatic', 'Sending request to SABnzbd')
@@ -128,6 +127,8 @@ def is_nzb_home(params):
         if "ok" in response:
             progressDialog.update(0, 'Request to SABnzbd succeeded', 'waiting for nzb download')
             seconds = 0
+            #SABnzbd uses nzb url as name until it has downloaded the nzb file
+            sab_nzo_id_init = SABNZBD.nzo_id(nzbname, nzb)
             while not (sab_nzo_id and os.path.exists(folder)):
                 sab_nzo_id = SABNZBD.nzo_id(nzbname)
                 label = str(seconds) + " seconds"
@@ -136,22 +137,25 @@ def is_nzb_home(params):
                     # Fix for hang when playing .strm
                     time.sleep(1)
                     xbmc.Player().stop()
-                    #SABnzbd uses nzb url as name until it has downloaded the nzb file
+                    if sab_nzo_id is None and sab_nzo_id_init is not None:
+                        sab_nzo_id = sab_nzo_id_init
                     #Trying to delete both the queue and history
-                    pause = SABNZBD.pause(nzb,'')
+                    pause = SABNZBD.pause('',sab_nzo_id)
                     time.sleep(3)
-                    delete_msg = SABNZBD.delete_queue(nzb,'')
+                    delete_msg = SABNZBD.delete_queue('',sab_nzo_id)
                     if not "ok" in delete_msg:
                         xbmc.log(delete_msg)
-                        delete_msg = SABNZBD.delete_history(nzb,'')
+                        delete_msg = SABNZBD.delete_history('',sab_nzo_id)
                         if not "ok" in delete_msg:
                             xbmc.log(delete_msg)
+                    else:
+                        xbmc.log("plugin.program.pneumatic deleted %s %s" % (nzbname, sab_nzo_id))
                     iscanceled = True
                     break
                 time.sleep(1)
                 seconds += 1
             if not iscanceled:
-                switch = SABNZBD.switch(0,nzbname, '')
+                switch = SABNZBD.switch(0, '', sab_nzo_id)
                 if not "ok" in switch:
                     xbmc.log(switch)
                     progressDialog.update(0, 'Failed to prioritize the nzb!')
@@ -170,7 +174,7 @@ def is_nzb_home(params):
             notification("Request to SABnzbd failed!")
             return False, sab_nzo_id
     else:
-        switch = SABNZBD.switch(0,nzbname, '')
+        switch = SABNZBD.switch(0,'' , sab_nzo_id)
         if not "ok" in switch:
             xbmc.log(switch)
             notification("Failed to prioritize the nzb!")
@@ -227,7 +231,7 @@ def pre_play(nzbname, **kwargs):
         if iscanceled:
             break
         else:
-            if sab_nzo_id:
+            if sab_nzo_id is not None:
                 set_streaming(sab_nzo_id)
             # TODO is this needed?
             # time.sleep(1)

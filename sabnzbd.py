@@ -170,17 +170,23 @@ class Sabnzbd:
                 xbmc.log("plugin.program.pneumatic SABnzbd from url: %s" % url)
         return responseMessage
         
-    def nzo_id(self, nzbname):
+    def nzo_id(self, nzbname, nzb = None):
         url = self.baseurl + "&mode=queue&start=0&limit=50&output=xml"
         doc = _load_xml(url)
-        sab_nzo_id = None
+        nzbname = nzbname.lower().replace('.', ' ').replace('_', ' ')
         if doc:
             if doc.getElementsByTagName("slot"):
                 for slot in doc.getElementsByTagName("slot"):
-                    filename = get_node_value(slot, "filename")
-                    if filename.lower() == nzbname.lower():
-                        sab_nzo_id  = get_node_value(slot, "nzo_id")
-        return sab_nzo_id
+                    status = get_node_value(slot, "status").lower()
+                    filename = get_node_value(slot, "filename").lower()
+                    if nzb is not None and "grabbing" in status:
+                        if nzb.lower() in filename:
+                            return get_node_value(slot, "nzo_id")
+                    elif not "grabbing" in status:
+                        filename = filename.replace('.', ' ').replace('_', ' ')
+                        if nzbname == filename:
+                            return get_node_value(slot, "nzo_id")
+        return None
 
     def nzf_id(self, sab_nzo_id, name):
         url = self.baseurl + "&mode=get_files&output=xml&value=" + str(sab_nzo_id)
@@ -218,8 +224,8 @@ class Sabnzbd:
         start = 0
         limit = 20
         noofslots = 21
-        sab_nzo_id = None
-        while limit <= noofslots and not sab_nzo_id:
+        nzbname = nzbname.lower().replace('.', ' ').replace('_', ' ')
+        while limit <= noofslots:
             url = self.baseurl + "&mode=history&start=" +str(start) + "&limit=" + str(limit) + "&output=xml"
             doc = _load_xml(url)
             if doc:
@@ -227,15 +233,15 @@ class Sabnzbd:
                 noofslots = int(get_node_value(history[0], "noofslots"))
                 if doc.getElementsByTagName("slot"):
                     for slot in doc.getElementsByTagName("slot"):
-                        filename = get_node_value(slot, "name")
+                        filename = get_node_value(slot, "name").lower().replace('.', ' ').replace('_', ' ')
                         if filename == nzbname:
-                            sab_nzo_id  = get_node_value(slot, "nzo_id")
+                            return get_node_value(slot, "nzo_id")
                 start = limit + 1
                 limit = limit + 20
             else:
                 limit = 1
-                noofslots = 0                
-        return sab_nzo_id
+                noofslots = 0
+        return None
 
     def nzo_id_history_list(self, nzbname_list):
         start = 0
@@ -250,11 +256,10 @@ class Sabnzbd:
                 noofslots = int(get_node_value(history[0], "noofslots"))
                 if doc.getElementsByTagName("slot"):
                     for slot in doc.getElementsByTagName("slot"):
-                        filename = get_node_value(slot, "name")
+                        filename = get_node_value(slot, "name").lower().replace('.', ' ').replace('_', ' ')
                         for row in nzbname_list:
-                            if filename == row[0]:
-                                sab_nzo_id = get_node_value(slot, "nzo_id")
-                                row[1] = sab_nzo_id
+                            if filename == row[0].lower().replace('.', ' ').replace('_', ' '):
+                                row[1] = get_node_value(slot, "nzo_id")
                 start = limit + 1
                 limit = limit + 20
             else:
