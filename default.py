@@ -134,6 +134,7 @@ def is_nzb_home(params):
                 label = str(seconds) + " seconds"
                 progressDialog.update(0, 'Request to SABnzbd succeeded', 'waiting for nzb download', label)
                 if progressDialog.iscanceled():
+                    progressDialog.close()
                     # Fix for hang when playing .strm
                     time.sleep(1)
                     xbmc.Player().stop()
@@ -159,15 +160,18 @@ def is_nzb_home(params):
                 if not "ok" in switch:
                     xbmc.log(switch)
                     progressDialog.update(0, 'Failed to prioritize the nzb!')
-                    time.sleep(2)
+                    time.sleep(1)
                 # Dont add meta data for local nzb's
                 if type == 'addurl':
                     t = Thread(target=save_nfo, args=(folder,))
                     t.start()
+                progressDialog.close()
                 return True, sab_nzo_id
             else:
+                progressDialog.close()
                 return False, sab_nzo_id
         else:
+            progressDialog.close()
             xbmc.log(response)
             # Fix for hang when playing .strm
             xbmc.Player().stop()            
@@ -359,6 +363,7 @@ def wait_for_nzf(folder, sab_nzo_id, nzf):
             percent, label = utils.wait_for_rar_label(nzo, m_nzf, time_now)
             progressDialog.update(percent, 'Request to SABnzbd succeeded, waiting for', utils.short_string(nzf.filename), label)
             if progressDialog.iscanceled():
+                progressDialog.close()
                 dialog = xbmcgui.Dialog()
                 ret = dialog.select('What do you want to do?', ['Delete job', 'Just download'])
                 # Fix for hang when playing .strm
@@ -376,6 +381,7 @@ def wait_for_nzf(folder, sab_nzo_id, nzf):
                 elif ret == 1:
                     notification("Downloading")
                 return True
+        progressDialog.close()
     return iscanceled
 
 def nzf_to_bottom(sab_nzo_id, nzf_list, sorted_nzf_list):
@@ -567,11 +573,12 @@ def download(params):
     progressDialog.create('Pneumatic', 'Sending request to SABnzbd')
     if "ok" in addurl:
         progressDialog.update(100, 'Request to SABnzbd succeeded')
-        time.sleep(2)
+        time.sleep(1)
     else:
         xbmc.log(addurl)
         progressDialog.update(0, 'Request to SABnzbd failed!')
-        time.sleep(2)
+        time.sleep(1)
+    progressDialog.close()
     return
 
 def get_category(ask = False):
