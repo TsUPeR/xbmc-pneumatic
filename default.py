@@ -509,7 +509,7 @@ def the_end_dialog(params, **kwargs):
     if ret == 0:
         delete(params)
     if ret == 1 and progressing:
-        return
+        just_download(params)
     elif ret == 1 and not progressing:
         repair(params)
     return
@@ -580,6 +580,17 @@ def download(params):
         time.sleep(1)
     progressDialog.close()
     return
+
+def just_download(params):
+    get = params.get
+    sab_nzo_id = get("nzoid")
+    category = get_category()
+    set_category = SABNZBD.set_category(id=sab_nzo_id, category=category)
+    if "ok" in set_category:
+        notification("Downloading")
+    else:
+        xbmc.log(set_category)
+        notification("Manual repair required")
 
 def get_category(ask = False):
     if __settings__.getSetting("sabnzbd_cat_ask").lower() == "true":

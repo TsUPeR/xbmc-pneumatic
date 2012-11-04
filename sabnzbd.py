@@ -153,6 +153,25 @@ class Sabnzbd:
             responseMessage = "no name or id for setStreaming provided"
         return responseMessage
 
+    def set_category(self, **kwargs):
+        category = kwargs.get('category', None)
+        nzbname = kwargs.get('nzbname', None)
+        id = kwargs.get('id', None)
+        url = "%s&mode=change_cat" % (self.baseurl)
+        if category is None:
+            if self.category is None or self.category == '':
+                category = '*'
+            else:
+                category = self.category
+        if nzbname is not None:
+            id = self.nzo_id(nzbname)
+        if id is not None:
+            url = "%s&value=%s&value2=%s" % (url, str(id), str(category))
+            responseMessage = self._sabResponse(url)
+        else:
+            responseMessage = "no name or id for setCategory provided"
+        return responseMessage
+
     def _sabResponse(self, url):
         try:
             req = urllib2.Request(url)
