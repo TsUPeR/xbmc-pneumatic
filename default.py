@@ -141,16 +141,19 @@ def is_nzb_home(params):
                     if sab_nzo_id is None and sab_nzo_id_init is not None:
                         sab_nzo_id = sab_nzo_id_init
                     #Trying to delete both the queue and history
-                    pause = SABNZBD.pause('',sab_nzo_id)
-                    time.sleep(3)
-                    delete_msg = SABNZBD.delete_queue('',sab_nzo_id)
-                    if not "ok" in delete_msg:
-                        xbmc.log(delete_msg)
-                        delete_msg = SABNZBD.delete_history('',sab_nzo_id)
+                    if sab_nzo_id is not None:
+                        pause = SABNZBD.pause_queue(id=sab_nzo_id)
+                        time.sleep(3)
+                        delete_msg = SABNZBD.delete_queue('',sab_nzo_id)
                         if not "ok" in delete_msg:
                             xbmc.log(delete_msg)
+                            delete_msg = SABNZBD.delete_history('',sab_nzo_id)
+                            if not "ok" in delete_msg:
+                                xbmc.log(delete_msg)
+                        else:
+                            xbmc.log("plugin.program.pneumatic deleted %s %s" % (nzbname, sab_nzo_id))
                     else:
-                        xbmc.log("plugin.program.pneumatic deleted %s %s" % (nzbname, sab_nzo_id))
+                        xbmc.log("plugin.program.pneumatic failed removing %s from the queue" % nzbname)
                     iscanceled = True
                     break
                 time.sleep(1)
@@ -370,7 +373,7 @@ def wait_for_nzf(folder, sab_nzo_id, nzf):
                 xbmc.Player().stop()
                 xbmc.executebuiltin('Dialog.Close(all, true)')
                 if ret == 0:
-                    pause = SABNZBD.pause('',sab_nzo_id)
+                    pause = SABNZBD.pause_queue(id=sab_nzo_id)
                     time.sleep(3)
                     delete_ = SABNZBD.delete_queue('',sab_nzo_id)
                     if not "ok" in delete_:
@@ -534,7 +537,7 @@ def delete(params):
         delete_ = "ok"
         if sab_nzo_id:
             if not "None" in sab_nzo_id and not delete_all:
-                pause = SABNZBD.pause('',sab_nzo_id)
+                pause = SABNZBD.pause_queue(id=sab_nzo_id)
                 time.sleep(3)
                 if "ok" in pause:
                     delete_ = SABNZBD.delete_queue('',sab_nzo_id)

@@ -52,14 +52,22 @@ class Sabnzbd:
         responseMessage = post_form.post(path, self.apikey, url, **kwargs)
         return responseMessage
 
-    def pause(self, nzbname='', id=''):
-        url = self.baseurl + "&mode=pause"
-        if nzbname:
-            sab_nzo_id = self.nzo_id(nzbname)
-            url = self.baseurl + "&mode=queue&name=pause&value=" + str(sab_nzo_id)
-        if id:
-            url = self.baseurl + "&mode=queue&name=pause&value=" + str(id)
+    def pause(self):
+        url = "%s&mode=pause" % self.baseurl
         responseMessage = self._sabResponse(url)
+        return responseMessage
+
+    def pause_queue(self, **kwargs):
+        nzbname = kwargs.get('nzbname', None)
+        id = kwargs.get('id', None)
+        url = "%s&mode=queue&name=pause" % (self.baseurl)
+        if nzbname is not None and id is None:
+            id = self.nzo_id(nzbname)
+        if id is not None:
+            url = "%s&value=%s" % (url, str(id))
+            responseMessage = self._sabResponse(url)
+        else:
+            responseMessage = "no name or id for pause_queue provided"
         return responseMessage
 
     def resume(self, nzbname='', id=''):
