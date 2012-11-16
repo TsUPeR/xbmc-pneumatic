@@ -129,7 +129,7 @@ def is_nzb_home(params):
             seconds = 0
             #SABnzbd uses nzb url as name until it has downloaded the nzb file
             sab_nzo_id_init = SABNZBD.nzo_id(nzbname, nzb)
-            while not (sab_nzo_id and os.path.exists(folder)):
+            while not (sab_nzo_id and utils.exists(folder)):
                 sab_nzo_id = SABNZBD.nzo_id(nzbname)
                 label = str(seconds) + " seconds"
                 progressDialog.update(0, 'Request to SABnzbd succeeded', 'waiting for nzb download', label)
@@ -190,7 +190,7 @@ def is_nzb_home(params):
 
 def nzb_cache(type, nzb, nzbname):
     nzb_path = os.path.join(NZB_CACHE, '%s%s' % (nzbname, '.nzb'))
-    if os.path.exists(nzb_path):
+    if utils.exists(nzb_path):
         nzb = nzb_path
         if IS_SAB_LOCAL:
             type = 'add_local'
@@ -200,16 +200,16 @@ def nzb_cache(type, nzb, nzbname):
     return type, nzb
 
 def save_nfo(folder):
-    nfo2home.save_nfo(__settings__, folder)
+    # nfo2home.save_nfo(__settings__, folder)
     return
 
 def pre_play(nzbname, **kwargs):
     mode = kwargs.get('mode', None)
     sab_nzo_id = kwargs.get('nzo', None)
     iscanceled = False
-    folder = os.path.join(INCOMPLETE_FOLDER, nzbname)
+    folder = utils.join(INCOMPLETE_FOLDER, nzbname)
     folder_one = folder + '.1'
-    if os.path.exists(folder_one):
+    if utils.exists(folder_one):
         folder = folder_one
     sab_file_list = []
     multi_arch_list = []
@@ -341,7 +341,7 @@ def wait_for_nzf(folder, sab_nzo_id, nzf):
     is_rar_found = False
     # If rar exist we skip dialogs
     some_rar = os.path.join(folder, nzf.filename)
-    if os.path.exists(some_rar):
+    if utils.exists(some_rar):
         is_rar_found = True
     if not is_rar_found:
         progressDialog = xbmcgui.DialogProgress()
@@ -349,16 +349,16 @@ def wait_for_nzf(folder, sab_nzo_id, nzf):
         time_now = time.time()
         while not is_rar_found:
             time.sleep(1)
-            if os.path.exists(some_rar):
+            if utils.exists(some_rar):
                 # TODO Look for optimization
                 # Wait until the file is written to disk before proceeding
                 size_now = int(nzf.bytes)
                 size_later = 0
                 while (size_now != size_later) or (size_now == 0) or (size_later == 0):
-                    size_now = os.stat(some_rar).st_size
+                    size_now = utils.size(some_rar)
                     if size_now != size_later:
                         time.sleep(0.5)
-                        size_later = os.stat(some_rar).st_size
+                        size_later = utils.size(some_rar)
                 is_rar_found = True
                 break
             nzo = sabnzbd.Nzo(SABNZBD, sab_nzo_id)
@@ -418,7 +418,7 @@ def play_video(params):
     folder = get("folder")
     folder = utils.unquote_plus(folder)
     # We might have deleted the path
-    if os.path.exists(folder):
+    if utils.exists(folder):
         # we trick xbmc to play avi by creating empty rars if the download is only partial
         utils.write_fake(file_list, folder)
         # Prepare potential file stacking
@@ -630,7 +630,7 @@ def incomplete():
     active_nzbname_list = []
     m_nzbname_list = []
     m_row = []
-    for folder in os.listdir(INCOMPLETE_FOLDER):
+    for folder in utils.listdir_dirs(INCOMPLETE_FOLDER):
         sab_nzo_id = SABNZBD.nzo_id(folder)
         if not sab_nzo_id:
             m_row.append(folder)
@@ -648,7 +648,7 @@ def incomplete():
         url = "&nzoid=" + str(row[1]) + "&nzbname=" + utils.quote_plus(row[0]) +\
               "&nzoidhistory_list=" + utils.quote_plus(';'.join(nzoid_history_list)) +\
               "&folder=" + utils.quote_plus(row[0])
-        info = nfo.ReadNfoLabels(os.path.join(INCOMPLETE_FOLDER, row[0]))
+        info = nfo.ReadNfoLabels(utils.join(INCOMPLETE_FOLDER, row[0]))
         info.info_labels['title'] = "Active - " + info.info_labels['title']
         add_posts(info.info_labels, url, MODE_INCOMPLETE_LIST, info.thumbnail, info.fanart)
     for row in nzbname_list:
@@ -656,11 +656,11 @@ def incomplete():
             url = "&nzoidhistory=" + str(row[1]) + "&nzbname=" + utils.quote_plus(row[0]) +\
                   "&nzoidhistory_list=" + utils.quote_plus(';'.join(nzoid_history_list)) +\
                   "&folder=" + utils.quote_plus(row[0])
-            info = nfo.ReadNfoLabels(os.path.join(INCOMPLETE_FOLDER, row[0]))
+            info = nfo.ReadNfoLabels(utils.join(INCOMPLETE_FOLDER, row[0]))
             add_posts(info.info_labels, url, MODE_INCOMPLETE_LIST, info.thumbnail, info.fanart)
         else:
             # Clean out a failed SABnzbd folder removal
-            utils.dir_exists(os.path.join(INCOMPLETE_FOLDER, row[0]), None)
+            utils.dir_exists(utils.join(INCOMPLETE_FOLDER, row[0]), None)
     xbmcplugin.setContent(HANDLE, 'movies')
     xbmcplugin.endOfDirectory(HANDLE, succeeded=True, cacheToDisc=True)
     return

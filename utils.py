@@ -29,11 +29,15 @@ import htmlentitydefs
 import urllib
 import xbmc
 import xbmcgui
+import xbmcaddon
+import xbmcvfs
 import time
 import math
 import shutil
 
 import rarfile
+
+
 
 RE_PART_X = r'(\S*?\.part\d{1,3}\.rar)'
 RE_PART01_X = '(\S*?\.part0{0,2}1\.rar)'
@@ -53,30 +57,29 @@ RAR_MIN_SIZE = 10485760
 
 def write_fake(file_list, folder):
     for filebasename in file_list:
-        filename = os.path.join(folder, filebasename)
-        if not os.path.exists(filename):
-            # make 7 byte file with a rar header
-            fd = open(filename,'wb')
-            fd.write(RAR_HEADER)
-            fd.close()
-        # Clean out 7 byte files if present
+        filename = join(folder, filebasename)
+        if not exists(filename):
+            result = write(filename, 'Rar!\x1a\x07')
+            if not result:
+                log("Failed writing fake rar %s" % filename)
         else:
-            if os.stat(filename).st_size == 7:
-                os.remove(filename)
-                filename_one = os.path.join(folder, (filebasename + ".1"))
-                if os.path.exists(filename_one):
-                    os.rename(filename_one, filename)
+            if size(filename) == 7:
+                delete(filename)
+                filename_one = join(folder, (filebasename + ".1"))
+                if exists(filename_one):
+                    rename(filename_one, filename)
     return
 
 def remove_fake(file_list, folder):
     for filebasename in file_list:
-        filename = os.path.join(folder, filebasename)
-        filename_one = os.path.join(folder, (filebasename + ".1"))
-        if os.path.exists(filename):
-            if os.stat(filename).st_size == 7:
-                os.remove(filename)
-                if os.path.exists(filename_one):
-                    os.rename(filename_one, filename)
+        filename = join(folder, filebasename)
+        filename_one = join(folder, (filebasename + ".1"))
+        if exists(filename):
+            if size(filename) == 7:
+                delete(filename)
+                filename_one = join(folder, (filebasename + ".1"))
+                if exists(filename_one):
+                    rename(filename_one, filename)
     return
 
 def sorted_rar_nzf_file_list(nzf_list):
@@ -125,10 +128,10 @@ def nzf_diff_list(list_a, list_b):
 
 def list_dir(folder):
     file_list = []
-    for filename in os.listdir(folder):
+    for filename in listdir_files(folder):
         row = []
         row.append(filename)
-        bytes = os.path.getsize(os.path.join(folder,filename))
+        bytes = size(join(folder,filename))
         row.append(bytes)
         file_list.append(row)
     return file_list
@@ -142,23 +145,35 @@ def dir_to_nzf_list(folder, sabnzbd):
     return nzf_list
 
 def dir_exists(folder, nzo_id):
-    if os.path.exists(folder):
-        dir_list = os.listdir(folder)
-        if len(dir_list) < 2 and nzo_id is None:
+    if exists(folder):
+        if len(listdir_files(folder)) == 0 and nzo_id is None:
             # Clean out a failed SABnzbd folder removal
-            shutil.rmtree(folder)
-            xbmc.log('Pneumatic removed empty incomplete folder %s' % folder)
+            rmdir(folder)
+            log('Removed empty incomplete folder %s' % folder)
             return False
         return True
     else:
         return False
 
 def rar_filenames(folder, file):
-    filepath = os.path.join(folder, file)
-    rf = rarfile.RarFile(filepath)
+    log("rar_filenames: folder: %s file: %s" % (folder, file))
+    filepath = join(folder, file)
+    USERDATA_PATH = xbmc.translatePath(xbmcaddon.Addon(id='plugin.program.pneumatic').getAddonInfo("profile"))
+    temp_path = os.path.join(USERDATA_PATH, 'temp.rar')
+    # clean out potential old temp file
+    delete(temp_path)
+    # read only 1024 bytes of the remote rar
+    buffer = read(filepath, 1024)
+    # write it local for rar inspection 
+    fd_out = open(temp_path,'wb')
+    fd_out.write(buffer)
+    fd_out.close()
+    rf = rarfile.RarFile(temp_path)
+    delete(temp_path)
     movie_file_list = rf.namelist()
     for f in rf.infolist():
         if f.compress_type != 48:
+            log("Compressed rar %s" % filepath)
             xbmc.executebuiltin('Notification("Pneumatic","Compressed rar!!!")')
     return movie_file_list
 
@@ -242,7 +257,6 @@ def pass_setup_test(result, incomplete):
             pass_test = False
             xbmcgui.Dialog().ok('Pneumatic', 'No incomplete folder configured')
     try:
-        # TODO os.access
         write_fake(filename, incomplete)
     except:
         pass_test = False
@@ -306,3 +320,82 @@ def unquote_plus(name):
         return urllib.unquote_plus(name)
     else:
         return unicode(urllib.unquote_plus(name), 'utf-8')
+
+def join(path1, path2):
+    path = os.path.join(path1, path2)
+    return xbmc.validatePath(path)
+
+def read(file, bytes=None):
+    fd = xbmcvfs.File(file)
+    if bytes is not None:
+        buffer = fd.read(bytes)
+    else:
+        buffer = fd.read()
+    fd.close()
+    return buffer
+
+def seek(file, pos, where):
+    # where in a file to seek from[0 begining, 1 current , 2 end possition]
+    fd = xbmcvfs.File(file)
+    result = fd.seek(pos, where)
+    fd.close()
+    return result
+
+def size(file):
+    fd = xbmcvfs.File(file)
+    size_out = fd.size()
+    fd.close()
+    return size_out
+
+def write(file, buffer):
+    fd = xbmcvfs.File(file, 'w')
+    result = fd.write(buffer)
+    fd.close()
+    return result
+
+def copy(source, target):
+    return xbmcvfs.copy(source, target)
+
+def delete(file):
+    return xbmcvfs.delete(file)
+
+def exists(path):
+    # path is a file or folder
+    return xbmcvfs.exists(path)
+
+def listdir(path):
+    dirs, files = xbmcvfs.listdir(path)
+    return dirs, files
+
+def listdir_dirs(path):
+    dirs, files = xbmcvfs.listdir(path)
+    return dirs
+
+def listdir_files(path):
+    dirs, files = xbmcvfs.listdir(path)
+    return files
+
+def mkdir(path):
+    return xbmcvfs.mkdir(path)
+
+def mkdirs(path):
+    # Will create all folders in path if needed
+    return xbmcvfs.mkdirs(path)
+
+def rename(file, name):
+    return xbmcvfs.rename(file, name)
+
+def rmdir(path):
+    return xbmcvfs.rmdir(path)
+
+def log(txt, level=xbmc.LOGDEBUG):
+    # Modified from http://forum.xbmc.org/showthread.php?tid=144677
+    # Log admits both unicode strings and str encoded with "utf-8" (or ascii). will fail with other str encodings.
+    if txt is not None:
+        if isinstance (txt,str):
+            txt = txt.decode("utf-8") #if it is str we assume it's "utf-8" encoded.
+                                  #will fail if called with other encodings (latin, etc) BE ADVISED!
+        # At this point we are sure txt is a unicode string.
+        # I reencode to utf-8 because in many xbmc versions log doesn't admit unicode.
+        message = u'plugin.program.pneumatic: %s' % txt
+        xbmc.log(msg=message.encode("utf-8"), level=level)
