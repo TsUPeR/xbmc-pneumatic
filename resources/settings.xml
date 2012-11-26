@@ -2,6 +2,7 @@
 <settings>
     <category label="30000">
         <setting id="auto_play" type="bool" label="30003" default="true"/>
+        <setting id="debug_log" type="bool" label="30050" default="false"/>
         <setting type="lsep" label="30004"/>
         <setting id="sabnzbd_key" type="text" label="30006" default=""/>
         <setting id="sabnzbd_user" type="text" label="30014" default=""/>

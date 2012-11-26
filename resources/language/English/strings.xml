@@ -3,6 +3,7 @@
     <!-- Plugin settings strings -->
     <string id="30000">General</string>
     <string id="30003">Auto play videos</string>
+    <string id="30050">Enable debug logging</string>
     <!-- SABnzbd -->
     <string id="30004">SABnzbd</string>
     <string id="30005">SABnzbd Category</string>

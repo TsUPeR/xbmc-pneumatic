@@ -25,6 +25,8 @@
 
 import xbmc
 
+from utils import log
+
 class XBMCPlayer(xbmc.Player):
     def __init__( self, *args, **kwargs ):
         self.is_active = True
@@ -33,15 +35,15 @@ class XBMCPlayer(xbmc.Player):
         self.is_stopped = False
 
     def onPlayBackStarted( self ):
-        print "#Playback Started#"
+        log("XBMCPlayer: onPlayBackStarted")
         self.is_playing = True
 
     def onPlayBackEnded( self ):
-        print "#Playback Ended#"
+        log("XBMCPlayer: onPlayBackEnded")
         self.is_ended = True
 
     def onPlayBackStopped( self ):
-        print "# Playback Stopped #"
+        log("XBMCPlayer: onPlayBackStopped")
         self.is_stopped = True
 
     def sleep(self, s):

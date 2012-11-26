@@ -29,11 +29,16 @@ import htmlentitydefs
 import urllib
 import xbmc
 import xbmcgui
+import xbmcaddon
 import time
 import math
 import shutil
 
 import rarfile
+
+__settings__ = xbmcaddon.Addon(id='plugin.program.pneumatic')
+
+DEBUG_LOG = (__settings__.getSetting("debug_log").lower() == "true")
 
 RE_PART_X = r'(\S*?\.part\d{1,3}\.rar)'
 RE_PART01_X = '(\S*?\.part0{0,2}1\.rar)'
@@ -52,6 +57,7 @@ RAR_HEADER = "Rar!\x1a\x07\x00"
 RAR_MIN_SIZE = 10485760
 
 def write_fake(file_list, folder):
+    log("write_fake: file_list: %s folder: %s" % (file_list, folder))
     for filebasename in file_list:
         filename = os.path.join(folder, filebasename)
         if not os.path.exists(filename):
@@ -59,24 +65,30 @@ def write_fake(file_list, folder):
             fd = open(filename,'wb')
             fd.write(RAR_HEADER)
             fd.close()
+            log("write_fake: write filename: %s" % filename)
         # Clean out 7 byte files if present
         else:
             if os.stat(filename).st_size == 7:
                 os.remove(filename)
+                log("write_fake: os.remove filename: %s" % filename)
                 filename_one = os.path.join(folder, (filebasename + ".1"))
                 if os.path.exists(filename_one):
                     os.rename(filename_one, filename)
+                    log("write_fake: os.rename: %s/%s" % (filename_one, filename))
     return
 
 def remove_fake(file_list, folder):
+    log("remove_fake: file_list: %s folder: %s" % (file_list, folder))
     for filebasename in file_list:
         filename = os.path.join(folder, filebasename)
         filename_one = os.path.join(folder, (filebasename + ".1"))
         if os.path.exists(filename):
             if os.stat(filename).st_size == 7:
                 os.remove(filename)
+                log("remove_fake: os.remove filename: %s" % filename)
                 if os.path.exists(filename_one):
                     os.rename(filename_one, filename)
+                    log("remove_fake: os.rename: %s/%s" % (filename_one, filename))
     return
 
 def sorted_rar_nzf_file_list(nzf_list):
@@ -124,16 +136,19 @@ def nzf_diff_list(list_a, list_b):
     return nzf_list
 
 def list_dir(folder):
+    log("list_dir: folder: %s" % folder)
     file_list = []
     for filename in os.listdir(folder):
         row = []
         row.append(filename)
         bytes = os.path.getsize(os.path.join(folder,filename))
         row.append(bytes)
+        log("list_dir: row: %s" % row)
         file_list.append(row)
     return file_list
 
 def dir_to_nzf_list(folder, sabnzbd):
+    log("dir_to_nzf_list: folder: %s sabnzbd: %s" % (folder, sabnzbd))
     nzf_list = []
     file_list = list_dir(folder)
     for filename, bytes in file_list:
@@ -142,45 +157,57 @@ def dir_to_nzf_list(folder, sabnzbd):
     return nzf_list
 
 def dir_exists(folder, nzo_id):
+    log("dir_exists: folder: %s nzo_id: %s" % (folder, nzo_id))
     if os.path.exists(folder):
         dir_list = os.listdir(folder)
         if len(dir_list) < 2 and nzo_id is None:
             # Clean out a failed SABnzbd folder removal
             shutil.rmtree(folder)
-            xbmc.log('Pneumatic removed empty incomplete folder %s' % folder)
+            log('dir_exists: shutil.rmtree: %s' % folder)
             return False
         return True
     else:
         return False
 
 def rar_filenames(folder, file):
+    log("rar_filenames: folder: %s file: %s" % (folder, file))
     filepath = os.path.join(folder, file)
     rf = rarfile.RarFile(filepath)
     movie_file_list = rf.namelist()
+    log("rar_filenames: movie_file_list: %s" % movie_file_list)
     for f in rf.infolist():
         if f.compress_type != 48:
             xbmc.executebuiltin('Notification("Pneumatic","Compressed rar!!!")')
+            log("rar_filenames: Compressed rar")
     return movie_file_list
 
 def is_movie_mkv(movie_list):
+    log("is_movie_mkv: movie_list: %s" % movie_list)
     mkv = False
     for movie in movie_list:
         if re.search(RE_MKV, movie, re.IGNORECASE):
             mkv = True
+            log("is_movie_mkv: movie is mkv: %s" % movie)
+        else:
+            log("is_movie_mkv: movie is not mkv: %s" % movie)
     return mkv
 
 def no_sample_list(movie_list):
+    log("no_sample_list: movie_list: %s" % movie_list)
     outList = movie_list[:]
     for i in range(len(movie_list)):
         match = re.search(RE_SAMPLE, movie_list[i], re.IGNORECASE)
         if match:
             outList.remove(movie_list[i])
+            log("no_sample_list: outList.remove: %s" % movie_list[i])
     if len(outList) == 0:
         # We return sample if it's the only file left 
         outList.append(movie_list[0])
+        log("no_sample_list: outList.append: %s" % movie_list[0])
     return outList
   
 def rarpath_fixer(folder, file):
+    log("rarpath_fixer: folder: %s file: %s" % (folder, file))
     filepath = os.path.join(folder, file)
     filepath = quote(filepath)
     filepath = filepath.replace(".","%2e")
@@ -188,10 +215,12 @@ def rarpath_fixer(folder, file):
     filepath = filepath.replace(":","%3a")
     filepath = filepath.replace("\\","%5c")
     filepath = filepath.replace("/","%2f")
+    log("rarpath_fixer: filepath: %s" % filepath)
     return filepath
     
 # FROM plugin.video.youtube.beta  -- converts the request url passed on by xbmc to our plugin into a dict  
 def get_parameters(parameterString):
+    log("get_parameters: parameterString: %s" % parameterString)
     commands = {}
     splitCommands = parameterString[parameterString.find('?')+1:].split('&')
     for command in splitCommands: 
@@ -199,10 +228,12 @@ def get_parameters(parameterString):
             splitCommand = command.split('=')
             name = splitCommand[0]
             value = splitCommand[1]
-            commands[name] = value  
+            commands[name] = value
+    log("get_parameters: commands: %s" % commands)
     return commands
 
 def sort_filename(filename_list):
+    log("sort_filename: filename_list: %s" % filename_list)
     outList = filename_list[:]
     if len(filename_list) == 1:
         return outList
@@ -213,6 +244,7 @@ def sort_filename(filename_list):
                 outList.remove(filename_list[i])
         if len(outList) == 0:
             outList.append(filename_list[0])
+        log("sort_filename: outList: %s" % outList)
         return outList
 
 def descape_entity(m, defs=htmlentitydefs.entitydefs):
@@ -227,6 +259,7 @@ def descape(string):
     return pattern.sub(descape_entity, string)
 
 def pass_setup_test(result, incomplete):
+    log("pass_setup_test: result: %s incomplete: %s" % (result, incomplete))
     pass_test = True
     if result == "ip":
         error = "Wrong ip-number or port"
@@ -247,11 +280,13 @@ def pass_setup_test(result, incomplete):
     except:
         pass_test = False
         xbmcgui.Dialog().ok('Pneumatic - failed to write test file', 'in incomplete folder')
+        log("pass_setup_test: failed to write test file")
     try:
         remove_fake(filename, incomplete)
     except:
         pass_test = False
         xbmcgui.Dialog().ok('Pneumatic - failed to remove test file', 'in incomplete folder')
+        log("pass_setup_test: failed to remove test file")
     return pass_test
     
 def short_string(input):
@@ -281,6 +316,7 @@ def wait_for_rar_label(nzo, nzf, time_then):
     return int(percent), label
 
 def notification(label, icon):
+    # TODO use generic icon here
     xbmc.executebuiltin('Notification("Pneumatic", "%s", 500, %s)' % (label, icon))
     
 def quote(name):
@@ -306,3 +342,20 @@ def unquote_plus(name):
         return urllib.unquote_plus(name)
     else:
         return unicode(urllib.unquote_plus(name), 'utf-8')
+
+def log(txt, level=xbmc.LOGDEBUG):
+    if DEBUG_LOG:
+        level = xbmc.LOGNOTICE
+    # Modified from http://forum.xbmc.org/showthread.php?tid=144677
+    # Log admits both unicode strings and str encoded with "utf-8" (or ascii). will fail with other str encodings.
+    if txt is not None:
+        if isinstance (txt,str):
+            try:
+                txt = txt.decode("utf-8") #if it is str we assume it's "utf-8" encoded.
+            except:
+                print "plugin.program.pneumatic:"
+                print repr(txt)
+        # At this point we are sure txt is a unicode string.
+        # Reencode to utf-8 because in many xbmc versions log doesn't admit unicode.
+        message = u'plugin.program.pneumatic: %s' % txt
+        xbmc.log(msg=message.encode("utf-8"), level=level)

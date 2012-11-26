@@ -29,6 +29,8 @@ import os
 import shutil
 from xml.dom.minidom import parse, parseString, Document, _write_data, Node, Element
 
+from utils import log
+
 class NfoLabels:
     def __init__(self, nfo_path = None):
         info_labels = {
@@ -170,7 +172,7 @@ class NfoLabels:
             try: 
                 out.write(doc)
             except:
-                xbmc.log('plugin.program.pneumatic failed to create .nfo file: %s' % \
+                log("write_doc: failed to create .nfo file: %s" % \
                          xbmc.translatePath(filepath))
     
     def to_xml(self, type):
@@ -266,8 +268,10 @@ class NfoLabels:
         thumbnail_dest = os.path.join(self.nfo_path, 'folder.jpg')
         try:
             shutil.copy(xbmc.translatePath(self.thumbnail), thumbnail_dest)
+            log("save_poster: wrote: %s" %  xbmc.translatePath(thumbnail_dest))
         except:
-            xbmc.log('plugin.program.pneumatic failed to write: %s' %  xbmc.translatePath(thumbnail_dest))
+            log("save_poster: failed to write: %s from: %s" %  \
+                    (xbmc.translatePath(self.thumbnail), xbmc.translatePath(thumbnail_dest)))
 
     def save_fanart(self):
         cached_fanart = xbmc.getCacheThumbName(self.fanart).replace('.tbn', '')
@@ -275,8 +279,10 @@ class NfoLabels:
         fanart_dest = os.path.join(self.nfo_path, 'fanart.jpg')
         try:
             shutil.copy(xbmc.translatePath(cached_fanart), xbmc.translatePath(fanart_dest))
+            log("save_fanart: wrote: %s from: %s" % \
+                    (xbmc.translatePath(fanart_dest), xbmc.translatePath(cached_fanart)))
         except:
-            xbmc.log('plugin.program.pneumatic failed to write: %s from: %s' % \
+            log("save_fanart: failed to write: %s from: %s" % \
                     (xbmc.translatePath(fanart_dest), xbmc.translatePath(cached_fanart)))
 
 class ReadNfoLabels:
@@ -294,7 +300,7 @@ class ReadNfoLabels:
             f = open(filename, 'r')
             out = parseString(f.read())
         except:
-            xbmc.log(('plugin.program.pneumatics could not open: %s.nfo') % \
+            log(("ReadNfoLabels: could not open: %s.nfo") % \
                     (xbmc.translatePath(self.nfo_path)))
             out = None
         if out:

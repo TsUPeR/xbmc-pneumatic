@@ -39,6 +39,7 @@ from xml.dom.minidom import parse, parseString
 from threading import Thread
 
 import sabnzbd
+from utils import log
 import utils
 import nfo
 import strm
@@ -81,6 +82,7 @@ MODE_ADD_LOCAL = "add_local"
 MODE_DEL_LOCAL = "del_local"
 
 def add_posts(info_labels, url, mode, thumb='', fanart='', folder=True):
+    log("add_posts: info_labels: %s url: %s mode: %s" % (info_labels, url, mode))
     listitem=xbmcgui.ListItem(info_labels['title'], iconImage="DefaultVideo.png", thumbnailImage=thumb)
     listitem.setInfo(type="Video", infoLabels=info_labels)
     listitem.setProperty("Fanart_Image", fanart)
@@ -104,6 +106,7 @@ def add_posts(info_labels, url, mode, thumb='', fanart='', folder=True):
     return xbmcplugin.addDirectoryItem(handle=HANDLE, url=xurl, listitem=listitem, isFolder=folder)
     
 def is_nzb_home(params):
+    log("is_nzb_home: params: %s" % params)
     get = params.get
     nzb = utils.unquote_plus(get("nzb"))
     nzbname = utils.unquote_plus(get("nzbname"))
@@ -111,6 +114,7 @@ def is_nzb_home(params):
     iscanceled = False
     type = get('type', 'addurl')
     sab_nzo_id = SABNZBD.nzo_id(nzbname, nzb)
+    log("is_nzb_home: folder: %s sab_nzo_id: %s" %(folder, sab_nzo_id))
     if not utils.dir_exists(folder, sab_nzo_id):
         progressDialog = xbmcgui.DialogProgress()
         progressDialog.create('Pneumatic', 'Sending request to SABnzbd')
@@ -124,17 +128,21 @@ def is_nzb_home(params):
             response = SABNZBD.add_local(nzb.encode('latin-1'), category=category)
         elif type == 'add_file':
             response = SABNZBD.add_file(nzb.encode('latin-1'), category=category)
+        log("is_nzb_home: type: %s response: %s" %(type, response))
         if "ok" in response:
             progressDialog.update(0, 'Request to SABnzbd succeeded', 'waiting for nzb download')
             seconds = 0
             #SABnzbd uses nzb url as name until it has downloaded the nzb file
             sab_nzo_id_init = SABNZBD.nzo_id(nzbname, nzb)
+            log("is_nzb_home: sab_nzo_id_init: %s" % sab_nzo_id_init)
             while not (sab_nzo_id and os.path.exists(folder)):
                 sab_nzo_id = SABNZBD.nzo_id(nzbname)
                 label = str(seconds) + " seconds"
+                log("is_nzb_home: waiting for nzb: sab_nzo_id: %s for: %s" % (sab_nzo_id, label))
                 progressDialog.update(0, 'Request to SABnzbd succeeded', 'waiting for nzb download', label)
                 if progressDialog.iscanceled():
                     progressDialog.close()
+                    log("is_nzb_home: waiting for nzb: canceled")
                     # Fix for hang when playing .strm
                     time.sleep(1)
                     xbmc.Player().stop()
@@ -143,25 +151,23 @@ def is_nzb_home(params):
                     #Trying to delete both the queue and history
                     if sab_nzo_id is not None:
                         pause = SABNZBD.pause_queue(id=sab_nzo_id)
+                        log("is_nzb_home: pause: sab_nzo_id: %s msg: %s" % (sab_nzo_id, pause))
                         time.sleep(3)
                         delete_msg = SABNZBD.delete_queue('',sab_nzo_id)
+                        log("is_nzb_home: delete_queue: sab_nzo_id: %s nzbname: %s msg: %s" % (sab_nzo_id, nzbname, delete_msg))
                         if not "ok" in delete_msg:
-                            xbmc.log(delete_msg)
                             delete_msg = SABNZBD.delete_history('',sab_nzo_id)
-                            if not "ok" in delete_msg:
-                                xbmc.log(delete_msg)
-                        else:
-                            xbmc.log("plugin.program.pneumatic deleted %s %s" % (nzbname, sab_nzo_id))
+                            log("is_nzb_home: delete_history: sab_nzo_id: %s nzbname: %s msg: %s" % (sab_nzo_id, nzbname, delete_msg))
                     else:
-                        xbmc.log("plugin.program.pneumatic failed removing %s from the queue" % nzbname)
+                        log("is_nzb_home: failed removing %s from the queue" % nzbname)
                     iscanceled = True
                     break
                 time.sleep(1)
                 seconds += 1
             if not iscanceled:
                 switch = SABNZBD.switch(0, '', sab_nzo_id)
+                log("is_nzb_home: switch: sab_nzo_id: %s msg: %s" % (sab_nzo_id, switch))
                 if not "ok" in switch:
-                    xbmc.log(switch)
                     progressDialog.update(0, 'Failed to prioritize the nzb!')
                     time.sleep(1)
                 # Dont add meta data for local nzb's
@@ -175,15 +181,15 @@ def is_nzb_home(params):
                 return False, sab_nzo_id
         else:
             progressDialog.close()
-            xbmc.log(response)
+            log("is_nzb_home: failed adding nzb to SAB")
             # Fix for hang when playing .strm
             xbmc.Player().stop()            
             notification("Request to SABnzbd failed!")
             return False, sab_nzo_id
     else:
         switch = SABNZBD.switch(0,'' , sab_nzo_id)
+        log("is_nzb_home: switch: sab_nzo_id: %s msg: %s" % (sab_nzo_id, switch))
         if not "ok" in switch:
-            xbmc.log(switch)
             notification("Failed to prioritize the nzb!")
         # TODO make sure there is also a NZB in the queue
         return True, sab_nzo_id
@@ -196,14 +202,16 @@ def nzb_cache(type, nzb, nzbname):
             type = 'add_local'
         else:
             type = 'add_file'
-        xbmc.log("Pneumatic loading %s from cache" % nzb)
+        log("nzb_cache: nzb_path: %s" % nzb)
     return type, nzb
 
 def save_nfo(folder):
+    log("save_nfo: folder: %s" % folder)
     nfo2home.save_nfo(__settings__, folder)
     return
 
 def pre_play(nzbname, **kwargs):
+    log("pre_play: nzbname: %s kwargs: %s" % (nzbname, kwargs))
     mode = kwargs.get('mode', None)
     sab_nzo_id = kwargs.get('nzo', None)
     iscanceled = False
@@ -245,9 +253,11 @@ def pre_play(nzbname, **kwargs):
             # RAR ANALYSYS #
             in_rar_file_list = utils.rar_filenames(folder, nzf.filename)
             movie_list = utils.sort_filename(in_rar_file_list)
+            log("pre_play: folder: %s nzf.filename: %s in_rar_file_list: %s" % (folder, nzf.filename, in_rar_file_list))
             # Make sure we have a movie
             if not (len(movie_list) >= 1):
                 notification("Not a movie!")
+                log("pre_play: no movie in movie_list")
                 break
             # Who needs sample?
             movie_no_sample_list = utils.no_sample_list(movie_list)
@@ -271,6 +281,7 @@ def pre_play(nzbname, **kwargs):
                 if iscanceled: 
                     break 
     if iscanceled:
+        log("pre_play: get_nzf: canceled")
         return
     else:
         rar_file_list = [x.filename for x in sorted_nzf_list]
@@ -294,13 +305,15 @@ def pre_play(nzbname, **kwargs):
 def set_streaming(sab_nzo_id):
     # Set the post process to 0 = skip will cause SABnzbd to fail the job. requires streaming_allowed = 1 in sabnzbd.ini (6.x)
     setstreaming = SABNZBD.setStreaming('', sab_nzo_id)
+    log("set_streaming: sab_nzo_id: %s msg %s" % (sab_nzo_id, setstreaming))
     if not "ok" in setstreaming:
-        xbmc.log(setstreaming)
         notification('Post process request to SABnzbd failed!')
         time.sleep(1)
     return
 
 def playlist_item(play_list, rar_file_list, folder, sab_nzo_id, sab_nzo_id_history):
+    log("playlist_item: play_list: %s rar_file_list: %s folder: %s sab_nzo_id: %s sab_nzo_id_history: %s" %\
+       (play_list, rar_file_list, folder, sab_nzo_id, sab_nzo_id_history))
     new_play_list = play_list[:]
     for arch_rar, movie_file in zip(play_list[0::2], play_list[1::2]):
         info = nfo.ReadNfoLabels(folder)
@@ -329,6 +342,7 @@ def playlist_item(play_list, rar_file_list, folder, sab_nzo_id, sab_nzo_id_histo
     return
 
 def get_nzf(folder, sab_nzo_id, nzf):
+    log("get_nzf: folder: %s sab_nzo_id: %s nzf.filename: %s" % (folder, sab_nzo_id, nzf.filename))
     if sab_nzo_id is not None:
         if nzf.status.lower() == 'active':
             SABNZBD.file_list_position(sab_nzo_id, [nzf.nzf_id], 0)
@@ -337,6 +351,7 @@ def get_nzf(folder, sab_nzo_id, nzf):
         return False
 
 def wait_for_nzf(folder, sab_nzo_id, nzf):
+    log("wait_for_nzf: folder: %s sab_nzo_id: %s nzf.filename: %s" % (folder, sab_nzo_id, nzf.filename))
     iscanceled = False
     is_rar_found = False
     # If rar exist we skip dialogs
@@ -388,11 +403,13 @@ def wait_for_nzf(folder, sab_nzo_id, nzf):
     return iscanceled
 
 def nzf_to_bottom(sab_nzo_id, nzf_list, sorted_nzf_list):
+    log("nzf_to_bottom: sab_nzo_id: %s" % sab_nzo_id)
     diff_list = list(set([nzf.nzf_id for nzf in nzf_list if nzf.nzf_id is not None])-set([nzf.nzf_id for nzf in sorted_nzf_list if nzf.nzf_id is not None]))
     SABNZBD.file_list_position(sab_nzo_id, diff_list, 3)
     return
 
 def list_movie(params):
+    log("list_movie: params: %s" % params) 
     get = params.get
     mode = get("mode")
     file_list = utils.unquote_plus(get("file_list")).split(";")
@@ -404,11 +421,13 @@ def list_movie(params):
     return playlist_item(play_list, file_list, folder, sab_nzo_id, sab_nzo_id_history)
 
 def list_incomplete(params):
+    log("list_incomplete: params: %s" % params)
     nzbname = utils.unquote_plus(params.get("nzbname"))
     sab_nzo_id = params.get("nzoid")
     pre_play(nzbname, mode=MODE_INCOMPLETE_LIST, nzo=sab_nzo_id)
 
 def play_video(params):
+    log("play_video: params: %s" % params)
     get = params.get
     mode = get("mode")
     file_list = get("file_list")
@@ -430,6 +449,7 @@ def play_video(params):
                 raruri = 'stack://' + ' , '.join(rar)
         else:
             raruri = "rar://" + utils.rarpath_fixer(folder, play_list[0]) + "/" + play_list[1]
+        log("play_video: raruri: %s" % raruri)
         info = nfo.NfoLabels()
         item = xbmcgui.ListItem(info.info_labels['title'], iconImage='DefaultVideo.png', thumbnailImage=info.thumbnail)
         item.setInfo(type="Video", infoLabels=info.info_labels)
@@ -468,6 +488,7 @@ def play_video(params):
     return
 
 def the_end(folder, is_stopped = False):
+    log("the_end: folder: %s is_stopped: %s" % (folder, is_stopped)) 
     nzbname = os.path.basename(folder)
     sab_nzo_id_history = SABNZBD.nzo_id_history(nzbname)
     sab_nzo_id = SABNZBD.nzo_id(nzbname)
@@ -490,6 +511,7 @@ def the_end(folder, is_stopped = False):
     return
 
 def the_end_dialog(params, **kwargs):
+    log("the_end_dialog: params: %s kwargs: %s" %(params, kwargs))
     dialog = xbmcgui.Dialog()
     if 'is_stopped' in kwargs:
         is_stopped = kwargs['is_stopped']
@@ -518,6 +540,7 @@ def the_end_dialog(params, **kwargs):
     return
 
 def delete(params):
+    log("delete: params: %s" % params)
     get = params.get
     sab_nzo_id = get("nzoid")
     sab_nzo_id_history = get("nzoidhistory")
@@ -538,9 +561,11 @@ def delete(params):
         if sab_nzo_id:
             if not "None" in sab_nzo_id and not delete_all:
                 pause = SABNZBD.pause_queue(id=sab_nzo_id)
+                log("delete: pause: %s" % pause)
                 time.sleep(3)
                 if "ok" in pause:
                     delete_ = SABNZBD.delete_queue('',sab_nzo_id)
+                    log("delete: delete_: %s" % delete_)
                 else:
                     delete_ = "failed"
         if  sab_nzo_id_history:
@@ -553,10 +578,10 @@ def delete(params):
                     delete_state = "failed"
             delete_ = delete_state
         if not "ok" in delete_:
-            xbmc.log(delete_)
             notification("Deleting failed")
     else:
         notification("Deleting failed")
+        log("delete: deleting failed")
     if end:
         return
     elif incomplete:
@@ -567,40 +592,44 @@ def delete(params):
     return
 
 def download(params):
+    log("download: params: %s" % params)
     get = params.get
     nzb = utils.unquote_plus(get("nzb"))
     nzbname = utils.unquote_plus(get("nzbname"))
     category = get_category(ask = True)
     addurl = SABNZBD.addurl(nzb, nzbname, category=category)
+    log("download: addurl: %s" % addurl)
     progressDialog = xbmcgui.DialogProgress()
     progressDialog.create('Pneumatic', 'Sending request to SABnzbd')
     if "ok" in addurl:
         progressDialog.update(100, 'Request to SABnzbd succeeded')
         time.sleep(1)
     else:
-        xbmc.log(addurl)
         progressDialog.update(0, 'Request to SABnzbd failed!')
         time.sleep(1)
     progressDialog.close()
     return
 
 def just_download(params):
+    log("just_download: params: %s" % params)
     get = params.get
     sab_nzo_id = get("nzoid")
     category = get_category()
     set_category = SABNZBD.set_category(id=sab_nzo_id, category=category)
+    log("just_download: set_category: %s" % set_category)
     if "ok" in set_category:
         notification("Downloading")
     else:
-        xbmc.log(set_category)
         notification("Manual repair required")
 
 def get_category(ask = False):
+    log("get_category: ask: %s" % ask)
     if __settings__.getSetting("sabnzbd_cat_ask").lower() == "true":
         ask = True
     if ask:
         dialog = xbmcgui.Dialog()
         category_list = SABNZBD.category_list()
+        log("get_category: category_list: %s" % category_list)
         category_list.remove('*')
         category_list.insert(0, 'Default')
         ret = dialog.select('Select SABnzbd category', category_list)
@@ -608,25 +637,28 @@ def get_category(ask = False):
             category = None
         else:
             category = category_list[ret]
+        log("get_category: category: %s" % category)
         return category
     else:
         return None
 
 def repair(params):
+    log("repair: params: %s" % params)
     get = params.get
     sab_nzo_id_history = get("nzoidhistory")
     end = get("end")
     repair_ = SABNZBD.repair('',sab_nzo_id_history)
+    log("repair: repair_: %s" % repair_)
     if "ok" in repair_:
         notification("Repair succeeded")
     else:
-        xbmc.log(repair_)
         notification("Repair failed")
     if not end:
         xbmc.executebuiltin("Action(ParentDir)")
     return
 
 def incomplete():
+    log("incomplete:")
     active_nzbname_list = []
     m_nzbname_list = []
     m_row = []
@@ -636,11 +668,13 @@ def incomplete():
             m_row.append(folder)
             m_row.append(None)
             m_nzbname_list.append(m_row)
+            log("incomplete: m_nzbname_list.append: %s" % m_row)
             m_row = []
         else:
             m_row.append(folder)
             m_row.append(sab_nzo_id)
             active_nzbname_list.append(m_row)
+            log("incomplete: active_nzbname_list: %s" % m_row)
             m_row = []
     nzbname_list = SABNZBD.nzo_id_history_list(m_nzbname_list)
     nzoid_history_list = [x[1] for x in nzbname_list if x[1] is not None]
@@ -666,6 +700,7 @@ def incomplete():
     return
 
 def local():
+    log("local:")
     if IS_SAB_LOCAL:
         type = 'add_local'
     else:
@@ -684,6 +719,7 @@ def local():
     xbmcplugin.endOfDirectory(HANDLE, succeeded=True, cacheToDisc=True)
 
 def list_local(params):
+    log("list_local: params: %s" % params)
     top_folder = utils.unquote_plus(params.get("folder"))
     type = utils.unquote_plus(params.get("type"))
     for folder in os.listdir(top_folder):
@@ -723,44 +759,55 @@ def list_local(params):
     return
 
 def add_local():
+    log("add_local:")
     dialog = xbmcgui.Dialog()
     nzb_file = dialog.browse(0, 'Pick a folder', 'files')
     # XBMC outputs utf-8
     path = unicode(nzb_file, 'utf-8')
+    log("add_local: path: %s" % path)
     if not os.path.isdir(path):
         return None
     else:
         folder_list = __settings__.getSetting("nzb_folder_list").split(';')
         folder_list.append(nzb_file)
         new_folder_list = ';'.join(folder_list)
+        log("add_local: new_folder_list: %s" % new_folder_list)
         __settings__.setSetting("nzb_folder_list", new_folder_list)
         xbmc.executebuiltin("Container.Refresh")
 
 def del_local(params):
+    log("del_local: params: %s" % params)
     folder = utils.unquote_plus(params.get("folder"))
     folder_path = folder.encode('utf-8')
     folder_list = __settings__.getSetting("nzb_folder_list").split(';')
     folder_list.remove(folder_path)
     new_folder_list = ';'.join(folder_list)
+    log("del_local: new_folder_list: %s" % new_folder_list)
     __settings__.setSetting("nzb_folder_list", new_folder_list)
     xbmc.executebuiltin("Container.Refresh")
 
 #From old undertexter.se plugin    
 def unikeyboard(default, message):
+    log("unikeyboard: default: %s message: %s" % (default, message))
     keyboard = xbmc.Keyboard(default, message)
     keyboard.doModal()
     if (keyboard.isConfirmed()):
-        return keyboard.getText()
+        txt = keyboard.getText()
+        log("unikeyboard: getText: %s" % txt)
+        return txt
     else:
         return ""
 
 def save_strm(nzbname, url):
+    log("save_strm: nzbname: %s url: %s" % (nzbname, url))
     strm2lib.save_strm(__settings__, nzbname, url)
     if SAVE_NZB and os.path.exists(NZB_CACHE):
         nzb_path = os.path.join(NZB_CACHE, '%s%s' % (nzbname, '.nzb'))
+        log("save_strm: nzb_path: %s" % nzb_path)
         m_nzb.save(url, nzb_path)
 
 def add_local_nzb():
+    log("add_local_nzb:")
     if not os.path.exists(NZB_FOLDER):
         __settings__.openSettings()
         return None
@@ -768,6 +815,7 @@ def add_local_nzb():
     nzb_file = dialog.browse(1, 'Pick a NZB', 'files', '.nzb', False, False, NZB_FOLDER)
     # XBMC outputs utf-8
     path = unicode(nzb_file, 'utf-8')
+    log("add_local_nzb: path: %s" % path)
     if not os.path.isfile(path):
         return None
     else:
@@ -785,6 +833,7 @@ def notification(label):
     utils.notification(label, __settings__.getAddonInfo("icon"))
 
 if (__name__ == "__main__" ):
+    log('v%s started' % __settings__.getAddonInfo("version"), xbmc.LOGNOTICE)
     HANDLE = int(sys.argv[1])
     if not (__settings__.getSetting("firstrun")):
         __settings__.openSettings()

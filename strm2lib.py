@@ -36,6 +36,8 @@ import strm
 import xbmc
 import xbmcgui
 
+from utils import log
+
 def save_strm(settings, nzbname, nzb):
     info = nfo.NfoLabels()
     info_labels = info.info_labels
@@ -90,7 +92,7 @@ class Tvshow:
         if show_name is None:
             manual_name = unikeyboard(self.nzbname, 'Enter show name')
             if manual_name is None:
-                xbmc.log("plugin.program.pneumatic did not recieve a name for the TV-show")
+                log("Tvshow: save: did not recieve a name for the TV-show")
                 return
             #show_name = manual_name.decode("utf_8").encode("raw_unicode_escape")
             show_name = unicode(manual_name, 'utf-8').replace('\n','')
@@ -100,7 +102,7 @@ class Tvshow:
             try:
                 os.mkdir(strm_path_show)
             except:
-                xbmc.log("plugin.program.pneumatic failed to create TV-show folder %s" % strm_path_show)
+                log("Tvshow: save: failed to create TV-show folder %s" % strm_path_show)
                 return
         # Check if tvshow.nfo is there, if not, create it.
         tv_nfo = self.info
@@ -231,7 +233,7 @@ class Movie:
             try:
                 os.mkdir(self.strm_path)
             except:
-                xbmc.log("plugin.program.pneumatic failed to create folder %s" % self.strm_path)
+                log("Movie: save: failed to create folder %s" % self.strm_path)
                 return
         movie_nfo = self.info
         movie_nfo.path(self.strm_path)
