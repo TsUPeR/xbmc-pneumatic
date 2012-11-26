@@ -359,3 +359,15 @@ def log(txt, level=xbmc.LOGDEBUG):
         # Reencode to utf-8 because in many xbmc versions log doesn't admit unicode.
         message = u'plugin.program.pneumatic: %s' % txt
         xbmc.log(msg=message.encode("utf-8"), level=level)
+
+#From old undertexter.se plugin    
+def unikeyboard(default, message):
+    log("unikeyboard: default: %s message: %s" % (default, message))
+    keyboard = xbmc.Keyboard(default, message)
+    keyboard.doModal()
+    if (keyboard.isConfirmed()):
+        txt = keyboard.getText()
+        log("unikeyboard: getText: %s" % txt)
+        return txt
+    else:
+        return None

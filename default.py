@@ -786,18 +786,6 @@ def del_local(params):
     __settings__.setSetting("nzb_folder_list", new_folder_list)
     xbmc.executebuiltin("Container.Refresh")
 
-#From old undertexter.se plugin    
-def unikeyboard(default, message):
-    log("unikeyboard: default: %s message: %s" % (default, message))
-    keyboard = xbmc.Keyboard(default, message)
-    keyboard.doModal()
-    if (keyboard.isConfirmed()):
-        txt = keyboard.getText()
-        log("unikeyboard: getText: %s" % txt)
-        return txt
-    else:
-        return ""
-
 def save_strm(nzbname, url):
     log("save_strm: nzbname: %s url: %s" % (nzbname, url))
     strm2lib.save_strm(__settings__, nzbname, url)

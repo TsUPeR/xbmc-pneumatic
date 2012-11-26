@@ -37,6 +37,7 @@ import xbmc
 import xbmcgui
 
 from utils import log
+from utils import unikeyboard
 
 def save_strm(settings, nzbname, nzb):
     info = nfo.NfoLabels()
@@ -253,11 +254,4 @@ def remove_disallowed_filename_chars(filename):
     validFilenameChars = "-_.() %s%s" % (string.ascii_letters, string.digits)
     cleanedFilename = unicodedata.normalize('NFKD', filename).encode('ASCII', 'ignore')
     return ''.join(c for c in cleanedFilename if c in validFilenameChars)
-
-def unikeyboard(default, message):
-    keyboard = xbmc.Keyboard(default, message)
-    keyboard.doModal()
-    if (keyboard.isConfirmed()):
-        return keyboard.getText()
-    else:
-        return None    
+   
