@@ -37,6 +37,7 @@ import shutil
 import rarfile
 
 __settings__ = xbmcaddon.Addon(id='plugin.program.pneumatic')
+__icon__ = __settings__.getAddonInfo("icon")
 
 DEBUG_LOG = (__settings__.getSetting("debug_log").lower() == "true")
 
@@ -315,9 +316,8 @@ def wait_for_rar_label(nzo, nzf, time_then):
         label = "This item is missing from the SABnzb queue"
     return int(percent), label
 
-def notification(label, icon):
-    # TODO use generic icon here
-    xbmc.executebuiltin('Notification("Pneumatic", "%s", 500, %s)' % (label, icon))
+def notification(label, duration=500, icon=__icon__):
+    xbmc.executebuiltin('Notification("Pneumatic", "%s", %s, %s)' % (label,duration, icon))
     
 def quote(name):
     if isinstance(name, unicode):
