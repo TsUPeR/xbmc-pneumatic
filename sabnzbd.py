@@ -5,6 +5,7 @@ from xml.dom.minidom import parse, parseString
 import post_form
 
 from utils import log
+from utils import notification
 
 class Sabnzbd:
     def __init__ (self, ip, port, apikey, username = None, password = None, category = None):
@@ -329,7 +330,7 @@ class Sabnzbd:
             response = urllib2.urlopen(req)
         except:
             log("SABnzbd: file_list_position: unable to load url: %s" % url)
-            xbmc.executebuiltin('Notification("Pneumatic","SABnzbd failed moving file to top of queue")')
+            notification("SABnzbd failed moving file to top of queue")
             return None
         response.close()
         return
@@ -396,7 +397,7 @@ def _load_xml(url):
         response = urllib2.urlopen(req)
     except:
         log("SABnzbd: _load_xml: unable to load url: %s" % url)
-        xbmc.executebuiltin('Notification("Pneumatic","SABnzbd down")')
+        notification("SABnzbd down")
         return None
     xml = response.read()
     response.close()
@@ -404,7 +405,7 @@ def _load_xml(url):
         out = parseString(xml)
     except:
         log("SABnzbd: _load_xml: malformed xml from url: %s" % url)
-        xbmc.executebuiltin('Notification("Pneumatic","SABnzbd malformed xml")')
+        notification("SABnzbd malformed xml")
         return None
     return out
 
