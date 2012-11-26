@@ -4,6 +4,8 @@ import xbmc
 from xml.dom.minidom import parse, parseString
 import post_form
 
+from utils import log
+
 class Sabnzbd:
     def __init__ (self, ip, port, apikey, username = None, password = None, category = None):
         self.ip = ip
@@ -187,14 +189,14 @@ class Sabnzbd:
         except:
             responseMessage = "unable to load url: " + url
         else:
-            log = response.read()
+            log_msg = response.read()
             response.close()
-            if "ok" in log:
+            if "ok" in log_msg:
                 responseMessage = 'ok'
             else:
-                responseMessage = log
-                xbmc.log("plugin.program.pneumatic SABnzbd message: %s" % log)
-                xbmc.log("plugin.program.pneumatic SABnzbd from url: %s" % url)
+                responseMessage = log_msg
+            log("SABnzbd: _sabResponse message: %s" % log_msg)
+            log("SABnzbd: _sabResponse from url: %s" % url)
         return responseMessage
         
     def nzo_id(self, nzbname, nzb = None):
@@ -244,7 +246,7 @@ class Sabnzbd:
             try:
                 sab_nzf_id_list.append(file_nzf[filename])
             except:
-                xbmc.log("plugin.program.pneumatic: unable to find sab_nzf_id for: " + filename)
+                log("SABnzbd: nzf_id_list: unable to find sab_nzf_id for: %s" % filename)
         return sab_nzf_id_list
 
     def nzo_id_history(self, nzbname):
@@ -326,7 +328,7 @@ class Sabnzbd:
             req = urllib2.Request(url)
             response = urllib2.urlopen(req)
         except:
-            xbmc.log("plugin.program.pneumatic: unable to load url: " + url)
+            log("SABnzbd: file_list_position: unable to load url: %s" % url)
             xbmc.executebuiltin('Notification("Pneumatic","SABnzbd failed moving file to top of queue")')
             return None
         response.close()
@@ -365,7 +367,7 @@ class Sabnzbd:
             req = urllib2.Request(url)
             response = urllib2.urlopen(req)
         except:
-            xbmc.log("plugin.program.pneumatic: unable to conncet to SABnzbd: " + url)
+            log("SABnzbd: setup_streaming: unable to conncet to SABnzbd: %s" % url)
             return "ip"
         xml = response.read()
         response.close()
@@ -393,7 +395,7 @@ def _load_xml(url):
         req = urllib2.Request(url)
         response = urllib2.urlopen(req)
     except:
-        xbmc.log("plugin.program.pneumatic: unable to load url: " + url)
+        log("SABnzbd: _load_xml: unable to load url: %s" % url)
         xbmc.executebuiltin('Notification("Pneumatic","SABnzbd down")')
         return None
     xml = response.read()
@@ -401,7 +403,7 @@ def _load_xml(url):
     try:
         out = parseString(xml)
     except:
-        xbmc.log("plugin.program.pneumatic: malformed xml from url: " + url)
+        log("SABnzbd: _load_xml: malformed xml from url: %s" % url)
         xbmc.executebuiltin('Notification("Pneumatic","SABnzbd malformed xml")')
         return None
     return out
