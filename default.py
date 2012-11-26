@@ -227,79 +227,94 @@ def pre_play(nzbname, **kwargs):
         nzo = sabnzbd.Nzo(SABNZBD, sab_nzo_id)
         nzf_list = nzo.nzf_list()
         sab_nzo_id_history = None
-    sorted_nzf_list = utils.sorted_rar_nzf_file_list(nzf_list)
+    sorted_rar_nzf_list = utils.sorted_rar_nzf_file_list(nzf_list)
     # TODO
     # If we cant find any rars in the queue, we have to wait for SAB
     # and then guess the names...
     # if len(nzf_list) == 0:
         # iscanceled = get_nzf(folder, sab_nzo_id, None)
-    multi_arch_nzf_list = utils.sorted_multi_arch_nzf_list(sorted_nzf_list)
-    # Loop though all multi archives and add file to the 
-    play_list = []
-    clean_sorted_nzf_list = utils.nzf_diff_list(sorted_nzf_list, multi_arch_nzf_list)
-    for nzf in multi_arch_nzf_list:
-        if sab_nzo_id is not None:
-            t = Thread(target=nzf_to_bottom, args=(sab_nzo_id, nzf_list, sorted_nzf_list,))
-            t.start()
-            iscanceled = get_nzf(folder, sab_nzo_id, nzf)
-        if iscanceled:
-            break
-        else:
-            if sab_nzo_id is not None:
-                set_streaming(sab_nzo_id)
-            # TODO is this needed?
-            # time.sleep(1)
-            # RAR ANALYSYS #
-            in_rar_file_list = utils.rar_filenames(folder, nzf.filename)
-            movie_list = utils.sort_filename(in_rar_file_list)
-            log("pre_play: folder: %s nzf.filename: %s in_rar_file_list: %s" % (folder, nzf.filename, in_rar_file_list))
-            # Make sure we have a movie
-            if not (len(movie_list) >= 1):
-                utils.notification("Not a movie!")
-                log("pre_play: no movie in movie_list")
-                break
-            # Who needs sample?
-            movie_no_sample_list = utils.no_sample_list(movie_list)
-            # If auto play is enabled we skip samples in the play_list
-            if AUTO_PLAY and mode is not MODE_INCOMPLETE_LIST:
-                for movie_file in movie_no_sample_list:
-                    play_list.append(nzf.filename)
-                    play_list.append(movie_file)
-            else:
-                for movie_file in movie_list:
-                    play_list.append(nzf.filename)
-                    play_list.append(movie_file)
-            # If the movie is a .mkv or .mp4 we need the last rar
-            if utils.is_movie_mkv(movie_list) and sab_nzo_id:
-                # If we have a sample or other file, the second rar is also needed..
-                if len(in_rar_file_list) > 1:
-                    second_nzf = clean_sorted_nzf_list[1]
-                    iscanceled = get_nzf(folder, sab_nzo_id, second_nzf)
-                last_nzf = clean_sorted_nzf_list[-1]
-                iscanceled =  get_nzf(folder, sab_nzo_id, last_nzf)
-                if iscanceled: 
-                    break 
-    if iscanceled:
-        log("pre_play: get_nzf: canceled")
-        return
+    is_movie_in_rar = True
+    if len(sorted_rar_nzf_list) == 0:
+        # look for other playable files
+        multi_nzf_list = sorted_nzf_list = utils.sorted_movie_nzf_file_list(nzf_list)
+        if len(multi_nzf_list) > 0:
+            is_movie_in_rar = False
     else:
-        rar_file_list = [x.filename for x in sorted_nzf_list]
-        if (len(rar_file_list) >= 1):
-            if AUTO_PLAY and ( mode is None or mode is MODE_STRM):
-                video_params = dict()
-                if not mode:
-                    video_params['mode'] = MODE_AUTO_PLAY
-                else:
-                    video_params['mode'] = MODE_STRM
-                video_params['play_list'] = utils.quote_plus(';'.join(play_list))
-                video_params['file_list'] = utils.quote_plus(';'.join(rar_file_list))
-                video_params['folder'] = utils.quote_plus(folder)
-                return play_video(video_params)   
+        multi_nzf_list = utils.sorted_multi_arch_nzf_list(sorted_rar_nzf_list)
+        sorted_nzf_list = sorted_rar_nzf_list
+        clean_sorted_nzf_list = utils.nzf_diff_list(sorted_nzf_list, multi_nzf_list)
+    if len(multi_nzf_list) > 0:
+        # Loop though all multi archives and add file to the 
+        play_list = []
+        for nzf in multi_nzf_list:
+            if sab_nzo_id is not None:
+                t = Thread(target=nzf_to_bottom, args=(sab_nzo_id, nzf_list, sorted_nzf_list,))
+                t.start()
+                iscanceled = get_nzf(folder, sab_nzo_id, nzf)
+            if iscanceled:
+                break
             else:
-                return playlist_item(play_list, rar_file_list, folder, sab_nzo_id, sab_nzo_id_history)
-        else:
-            utils.notification("No rar\'s in the NZB!!")
+                if sab_nzo_id is not None:
+                    set_streaming(sab_nzo_id)
+                if is_movie_in_rar:
+                    # RAR ANALYSYS #
+                    in_rar_file_list = utils.rar_filenames(folder, nzf.filename)
+                    movie_list = utils.sort_filename(in_rar_file_list)
+                    log("pre_play: folder: %s nzf.filename: %s in_rar_file_list: %s" % (folder, nzf.filename, in_rar_file_list))
+                else:
+                    movie_list = [os.path.join(folder, nzf.filename)]
+                # Make sure we have a movie
+                if not (len(movie_list) >= 1):
+                    utils.notification("Not a movie!")
+                    log("pre_play: no movie in movie_list")
+                    break
+                # Who needs sample?
+                movie_no_sample_list = utils.no_sample_list(movie_list)
+                # If auto play is enabled we skip samples in the play_list
+                if AUTO_PLAY and mode is not MODE_INCOMPLETE_LIST:
+                    for movie_file in movie_no_sample_list:
+                        play_list.append(nzf.filename)
+                        play_list.append(movie_file)
+                else:
+                    for movie_file in movie_list:
+                        play_list.append(nzf.filename)
+                        play_list.append(movie_file)
+                # If the movie is a .mkv or .mp4 we need the last rar
+                if utils.is_movie_mkv(movie_list) and sab_nzo_id and is_movie_in_rar:
+                    # If we have a sample or other file, the second rar is also needed..
+                    if len(in_rar_file_list) > 1:
+                        second_nzf = clean_sorted_nzf_list[1]
+                        iscanceled = get_nzf(folder, sab_nzo_id, second_nzf)
+                    last_nzf = clean_sorted_nzf_list[-1]
+                    iscanceled =  get_nzf(folder, sab_nzo_id, last_nzf)
+                    if iscanceled: 
+                        break 
+        if iscanceled:
+            log("pre_play: get_nzf: canceled")
             return
+        else:
+            rar_file_list = [x.filename for x in sorted_nzf_list]
+            if (len(rar_file_list) >= 1) or (not is_movie_in_rar and len(movie_list) >= 1):
+                if AUTO_PLAY and ( mode is None or mode is MODE_STRM):
+                    video_params = dict()
+                    if not mode:
+                        video_params['mode'] = MODE_AUTO_PLAY
+                    else:
+                        video_params['mode'] = MODE_STRM
+                    video_params['play_list'] = utils.quote_plus(';'.join(play_list))
+                    video_params['file_list'] = utils.quote_plus(';'.join(rar_file_list))
+                    video_params['folder'] = utils.quote_plus(folder)
+                    return play_video(video_params)   
+                else:
+                    return playlist_item(play_list, rar_file_list, folder, sab_nzo_id, sab_nzo_id_history)
+            else:
+                utils.notification("No rar\'s in the NZB!")
+                log("pre_play: no rar\'s in the NZB")
+                return
+    else:
+        utils.notification("No playable files found!")
+        log("pre_play: no playable files found")
+        return
 
 def set_streaming(sab_nzo_id):
     # Set the post process to 0 = skip will cause SABnzbd to fail the job. requires streaming_allowed = 1 in sabnzbd.ini (6.x)
@@ -437,29 +452,37 @@ def play_video(params):
     folder = utils.unquote_plus(folder)
     # We might have deleted the path
     if os.path.exists(folder):
-        # we trick xbmc to play avi by creating empty rars if the download is only partial
-        utils.write_fake(file_list, folder)
-        # Prepare potential file stacking
-        if (len(play_list) > 2):
-            rar = []
-            for arch_rar, movie_file in zip(play_list[0::2], play_list[1::2]):
-                raruri = "rar://" + utils.rarpath_fixer(folder, arch_rar) + "/" + movie_file
-                rar.append(raruri)
-                raruri = 'stack://' + ' , '.join(rar)
+        if len(file_list) > 0 and not play_list[1].endswith(play_list[0]):
+            # we trick xbmc to play avi by creating empty rars if the download is only partial
+            utils.write_fake(file_list, folder)
+            # Prepare potential file stacking
+            if (len(play_list) > 2):
+                rar = []
+                for arch_rar, movie_file in zip(play_list[0::2], play_list[1::2]):
+                    raruri = "rar://" + utils.rarpath_fixer(folder, arch_rar) + "/" + movie_file
+                    rar.append(raruri)
+                    raruri = 'stack://' + ' , '.join(rar)
+            else:
+                raruri = "rar://" + utils.rarpath_fixer(folder, play_list[0]) + "/" + play_list[1]
+            uri = raruri
         else:
-            raruri = "rar://" + utils.rarpath_fixer(folder, play_list[0]) + "/" + play_list[1]
-        log("play_video: raruri: %s" % raruri)
+            # we have a plain file
+            if (len(play_list) > 2):
+                uri = "stack://%s" % ' , '.join(play_list[1::2])
+            else:
+                uri = play_list[1]
+        log("play_video: uri: %s" % uri)
         info = nfo.NfoLabels()
         item = xbmcgui.ListItem(info.info_labels['title'], iconImage='DefaultVideo.png', thumbnailImage=info.thumbnail)
         item.setInfo(type="Video", infoLabels=info.info_labels)
-        item.setPath(raruri)
+        item.setPath(uri)
         item.setProperty("IsPlayable", "true")
         xbmcplugin.setContent(HANDLE, 'movies')
         wait = 0
         player = xbmcplayer.XBMCPlayer(xbmc.PLAYER_CORE_AUTO)
         player.sleep(1000)
         if mode == MODE_AUTO_PLAY or mode == MODE_LIST_PLAY:
-            player.play( raruri, item )
+            player.play( uri, item )
         else:
             xbmcplugin.setResolvedUrl(handle=HANDLE, succeeded=True, listitem=item)
         removed_fake = False

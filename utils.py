@@ -48,7 +48,7 @@ RE_RAR_X = r'(\S*?\.rar)'
 RE_PART = '\.part\d{2,3}\.rar$'
 RE_PART01 = '\.part0{1,2}1\.rar$'
 RE_R = '\.[rs]\d{2,3}$'
-RE_MOVIE = '\.avi$|\.mkv$|\.iso$|\.img$'
+RE_MOVIE = '\.avi$|\.mkv$|\.iso$|\.img$|\.mp4$'
 # https://github.com/sabnzbd/sabnzbd/blob/develop/sabnzbd/constants.py#L142
 RE_SAMPLE = r'((^|[\W_])sample\d*[\W_])|(-s\.)'
 RE_MKV = '\.mkv$|\.mp4$'
@@ -114,6 +114,17 @@ def sorted_rar_nzf_file_list(nzf_list):
                 if out is not None:
                     nzf.filename = out
                     file_list.append(nzf)
+        if len(file_list) > 1:
+            file_list.sort(key=lambda x: x.filename)
+    return file_list
+
+def sorted_movie_nzf_file_list(nzf_list):
+    file_list = []
+    if len(nzf_list) > 0:
+        for nzf in nzf_list:
+            movie = re.findall(RE_MOVIE, nzf.filename)
+            if movie:
+                file_list.append(nzf)
         if len(file_list) > 1:
             file_list.sort(key=lambda x: x.filename)
     return file_list
