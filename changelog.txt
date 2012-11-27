@@ -1,3 +1,8 @@
+[B]Pneumatic 0.2.11[/B]
+- Support for unpacked content
+- Debug logging settings
+- Pause only SAB queue item
+
 [B]Pneumatic 0.2.10[/B]
 - Do not fail downloads when selecting "Just download"
 
