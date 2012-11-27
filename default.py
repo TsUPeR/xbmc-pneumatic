@@ -483,8 +483,10 @@ def play_video(params):
         player.sleep(1000)
         if mode == MODE_AUTO_PLAY or mode == MODE_LIST_PLAY:
             player.play( uri, item )
+            log("play_video: player.play uri: %s" % uri)
         else:
             xbmcplugin.setResolvedUrl(handle=HANDLE, succeeded=True, listitem=item)
+            log("play_video: setResolvedUrl uri: %s" % uri)
         removed_fake = False
         while player.is_active:
             player.sleep(500)
