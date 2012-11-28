@@ -248,14 +248,14 @@ def pre_play(nzbname, **kwargs):
         play_list = []
         for nzf in multi_nzf_list:
             if sab_nzo_id is not None:
+                response = set_streaming(sab_nzo_id)
+                log("pre_play: set_streaming: %s" % response)
                 t = Thread(target=nzf_to_bottom, args=(sab_nzo_id, nzf_list, sorted_nzf_list,))
                 t.start()
                 iscanceled = get_nzf(folder, sab_nzo_id, nzf)
             if iscanceled:
                 break
             else:
-                if sab_nzo_id is not None:
-                    set_streaming(sab_nzo_id)
                 if is_movie_in_rar:
                     # RAR ANALYSYS #
                     in_rar_file_list = utils.rar_filenames(folder, nzf.filename)
