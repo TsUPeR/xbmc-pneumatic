@@ -411,7 +411,9 @@ def wait_for_nzf(folder, sab_nzo_id, nzf):
                     else:
                         utils.notification("Deleting succeeded") 
                 elif ret == 1:
-                    utils.notification("Downloading")
+                    # allow the previous select dialog to close
+                    time.sleep(1)
+                    just_download({'nzoid': sab_nzo_id})
                 return True
         progressDialog.close()
     return iscanceled
