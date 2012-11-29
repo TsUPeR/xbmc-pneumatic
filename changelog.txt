@@ -1,3 +1,7 @@
+[B]Pneumatic 0.2.12[/B]
+- Set_streaming now set for unpacked content
+- Correct postprocessing on canceled downloads
+
 [B]Pneumatic 0.2.11[/B]
 - Support for unpacked content
 - Debug logging settings
