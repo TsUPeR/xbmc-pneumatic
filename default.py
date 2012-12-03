@@ -108,7 +108,7 @@ def is_nzb_home(params):
     log("is_nzb_home: params: %s" % params)
     get = params.get
     nzb = utils.unquote_plus(get("nzb"))
-    nzbname = utils.unquote_plus(get("nzbname"))
+    nzbname = m_nzb.Nzbname(utils.unquote_plus(get("nzbname"))).final_name
     folder = os.path.join(INCOMPLETE_FOLDER, nzbname)
     iscanceled = False
     type = get('type', 'addurl')
