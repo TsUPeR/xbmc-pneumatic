@@ -109,7 +109,7 @@ def is_nzb_home(params):
     get = params.get
     nzb = utils.unquote_plus(get("nzb"))
     nzbname = m_nzb.Nzbname(utils.unquote_plus(get("nzbname"))).final_name
-    folder = os.path.join(INCOMPLETE_FOLDER, nzbname)
+    folder = utils.join(INCOMPLETE_FOLDER, nzbname)
     iscanceled = False
     type = get('type', 'addurl')
     sab_nzo_id = SABNZBD.nzo_id(nzbname, nzb)
@@ -134,7 +134,7 @@ def is_nzb_home(params):
             #SABnzbd uses nzb url as name until it has downloaded the nzb file
             sab_nzo_id_init = SABNZBD.nzo_id(nzbname, nzb)
             log("is_nzb_home: sab_nzo_id_init: %s" % sab_nzo_id_init)
-            while not (sab_nzo_id and os.path.exists(folder)):
+            while not (sab_nzo_id and utils.exists(folder)):
                 sab_nzo_id = SABNZBD.nzo_id(nzbname)
                 label = str(seconds) + " seconds"
                 log("is_nzb_home: waiting for nzb: sab_nzo_id: %s for: %s" % (sab_nzo_id, label))
@@ -195,7 +195,7 @@ def is_nzb_home(params):
 
 def nzb_cache(type, nzb, nzbname):
     nzb_path = os.path.join(NZB_CACHE, '%s%s' % (nzbname, '.nzb'))
-    if os.path.exists(nzb_path):
+    if utils.exists(nzb_path):
         nzb = nzb_path
         if IS_SAB_LOCAL:
             type = 'add_local'
@@ -214,9 +214,9 @@ def pre_play(nzbname, **kwargs):
     mode = kwargs.get('mode', None)
     sab_nzo_id = kwargs.get('nzo', None)
     iscanceled = False
-    folder = os.path.join(INCOMPLETE_FOLDER, nzbname)
+    folder = utils.join(INCOMPLETE_FOLDER, nzbname)
     folder_one = folder + '.1'
-    if os.path.exists(folder_one):
+    if utils.exists(folder_one):
         folder = folder_one
     sab_file_list = []
     multi_arch_list = []
@@ -370,7 +370,7 @@ def wait_for_nzf(folder, sab_nzo_id, nzf):
     is_rar_found = False
     # If rar exist we skip dialogs
     some_rar = os.path.join(folder, nzf.filename)
-    if os.path.exists(some_rar):
+    if utils.exists(some_rar):
         is_rar_found = True
     if not is_rar_found:
         progressDialog = xbmcgui.DialogProgress()
@@ -378,16 +378,16 @@ def wait_for_nzf(folder, sab_nzo_id, nzf):
         time_now = time.time()
         while not is_rar_found:
             time.sleep(1)
-            if os.path.exists(some_rar):
+            if utils.exists(some_rar):
                 # TODO Look for optimization
                 # Wait until the file is written to disk before proceeding
                 size_now = int(nzf.bytes)
                 size_later = 0
                 while (size_now != size_later) or (size_now == 0) or (size_later == 0):
-                    size_now = os.stat(some_rar).st_size
+                    size_now = utils.size(some_rar)
                     if size_now != size_later:
                         time.sleep(0.5)
-                        size_later = os.stat(some_rar).st_size
+                        size_later = utils.size(some_rar)
                 is_rar_found = True
                 break
             nzo = sabnzbd.Nzo(SABNZBD, sab_nzo_id)
@@ -453,7 +453,7 @@ def play_video(params):
     folder = get("folder")
     folder = utils.unquote_plus(folder)
     # We might have deleted the path
-    if os.path.exists(folder):
+    if utils.exists(folder):
         if len(file_list) > 0 and not play_list[1].endswith(play_list[0]):
             # we trick xbmc to play avi by creating empty rars if the download is only partial
             utils.write_fake(file_list, folder)
@@ -688,7 +688,7 @@ def incomplete():
     active_nzbname_list = []
     m_nzbname_list = []
     m_row = []
-    for folder in os.listdir(INCOMPLETE_FOLDER):
+    for folder in utils.listdir_dirs(INCOMPLETE_FOLDER):
         sab_nzo_id = SABNZBD.nzo_id(folder)
         if not sab_nzo_id:
             m_row.append(folder)
@@ -708,7 +708,7 @@ def incomplete():
         url = "&nzoid=" + str(row[1]) + "&nzbname=" + utils.quote_plus(row[0]) +\
               "&nzoidhistory_list=" + utils.quote_plus(';'.join(nzoid_history_list)) +\
               "&folder=" + utils.quote_plus(row[0])
-        info = nfo.ReadNfoLabels(os.path.join(INCOMPLETE_FOLDER, row[0]))
+        info = nfo.ReadNfoLabels(utils.join(INCOMPLETE_FOLDER, row[0]))
         info.info_labels['title'] = "Active - " + info.info_labels['title']
         add_posts(info.info_labels, url, MODE_INCOMPLETE_LIST, info.thumbnail, info.fanart)
     for row in nzbname_list:
@@ -716,11 +716,11 @@ def incomplete():
             url = "&nzoidhistory=" + str(row[1]) + "&nzbname=" + utils.quote_plus(row[0]) +\
                   "&nzoidhistory_list=" + utils.quote_plus(';'.join(nzoid_history_list)) +\
                   "&folder=" + utils.quote_plus(row[0])
-            info = nfo.ReadNfoLabels(os.path.join(INCOMPLETE_FOLDER, row[0]))
+            info = nfo.ReadNfoLabels(utils.join(INCOMPLETE_FOLDER, row[0]))
             add_posts(info.info_labels, url, MODE_INCOMPLETE_LIST, info.thumbnail, info.fanart)
         else:
             # Clean out a failed SABnzbd folder removal
-            utils.dir_exists(os.path.join(INCOMPLETE_FOLDER, row[0]), None)
+            utils.dir_exists(utils.join(INCOMPLETE_FOLDER, row[0]), None)
     xbmcplugin.setContent(HANDLE, 'movies')
     xbmcplugin.endOfDirectory(HANDLE, succeeded=True, cacheToDisc=True)
     return
@@ -748,38 +748,41 @@ def list_local(params):
     log("list_local: params: %s" % params)
     top_folder = utils.unquote_plus(params.get("folder"))
     type = utils.unquote_plus(params.get("type"))
-    for folder in os.listdir(top_folder):
-        folder_path = os.path.join(top_folder, folder)
-        if os.path.isdir(folder_path):
-            # Check if the folder contains a single nzb and no folders
-            nzb_list = []
-            folder_list = []
-            for name in os.listdir(folder_path):
-                name_path = os.path.join(folder_path, name)
-                if os.path.isfile(name_path) and os.path.splitext(name_path)[1] == '.nzb':
-                    nzb_list.append(name_path)
-                elif os.path.isdir(name_path):
-                    folder_list.append(name_path)
-            # If single nzb allow the folder to be playable and show info
-            if len(nzb_list) == 1 and len(folder_list) == 0:
-                # Fixing the naming of nzb according to SAB rules
-                nzb_name = m_nzb.Nzbname(os.path.basename(nzb_list[0])).final_name
-                if folder.lower() == nzb_name.lower():
-                    info = nfo.ReadNfoLabels(folder_path)
-                    info.info_labels['title'] = info.info_labels['title']
-                    url = "&nzbname=" + utils.quote_plus(nzb_name) +\
-                          "&nzb=" + utils.quote_plus(nzb_list[0]) + "&type=" + type
-                    add_posts(info.info_labels, url, MODE_PLAY, info.thumbnail, info.fanart, False)
-                else:
-                    url = "&type=" + type + "&folder=" + utils.quote_plus(folder_path)
-                    add_posts({'title':folder}, url, MODE_LOCAL_LIST, '', '')
+    for folder in utils.listdir_dirs(top_folder):
+        folder_path = utils.join(top_folder, folder)
+        # Check if the folder contains a single nzb and no folders
+        nzb_list = []
+        folder_list = []
+        for file in utils.listdir_files(folder_path):
+            file_path = utils.join(folder_path, file)
+            ext = os.path.splitext(file_path)[1]
+            if  ext == '.nzb' or ext == '.gz' or ext == '.zip':
+                nzb_list.append(file_path)
+        for sub_folder in utils.listdir_dirs(folder_path):
+                folder_list.append(sub_folder)
+        # If single nzb allow the folder to be playable and show info
+        if len(nzb_list) == 1 and len(folder_list) == 0:
+            # Fixing the naming of nzb according to SAB rules
+            nzb_name = m_nzb.Nzbname(os.path.basename(nzb_list[0])).final_name
+            if folder.lower() == nzb_name.lower():
+                info = nfo.ReadNfoLabels(folder_path)
+                info.info_labels['title'] = info.info_labels['title']
+                url = "&nzbname=" + utils.quote_plus(nzb_name) +\
+                      "&nzb=" + utils.quote_plus(nzb_list[0]) + "&type=" + type
+                add_posts(info.info_labels, url, MODE_PLAY, info.thumbnail, info.fanart, False)
             else:
                 url = "&type=" + type + "&folder=" + utils.quote_plus(folder_path)
                 add_posts({'title':folder}, url, MODE_LOCAL_LIST, '', '')
-        elif os.path.isfile(folder_path) and os.path.splitext(folder)[1] == '.nzb':
-            url = "&nzbname=" + utils.quote_plus(m_nzb.Nzbname(folder).final_name) +\
-                  "&nzb=" + utils.quote_plus(folder_path) + "&type=" + type
-            add_posts({'title':folder}, url, MODE_PLAY, '', '', False)
+        else:
+            url = "&type=" + type + "&folder=" + utils.quote_plus(folder_path)
+            add_posts({'title':folder}, url, MODE_LOCAL_LIST, '', '')
+    for file in utils.listdir_files(top_folder):
+        ext = os.path.splitext(file)[1]
+        if  ext == '.nzb' or ext == '.gz' or ext == '.zip':
+            file_path = utils.join(top_folder, file)
+            url = "&nzbname=" + utils.quote_plus(m_nzb.Nzbname(file).final_name) +\
+                  "&nzb=" + utils.quote_plus(file_path) + "&type=" + type
+            add_posts({'title':file}, url, MODE_PLAY, '', '', False)
     xbmcplugin.setContent(HANDLE, 'movies')
     xbmcplugin.endOfDirectory(HANDLE, succeeded=True, cacheToDisc=True)
     return
@@ -787,11 +790,11 @@ def list_local(params):
 def add_local():
     log("add_local:")
     dialog = xbmcgui.Dialog()
-    nzb_file = dialog.browse(0, 'Pick a folder', 'files')
+    nzb_file = dialog.browse(0, 'Pick a folder', 'video')
     # XBMC outputs utf-8
     path = unicode(nzb_file, 'utf-8')
     log("add_local: path: %s" % path)
-    if not os.path.isdir(path):
+    if not utils.isdir(path):
         return None
     else:
         folder_list = __settings__.getSetting("nzb_folder_list").split(';')
@@ -815,14 +818,14 @@ def del_local(params):
 def save_strm(nzbname, url):
     log("save_strm: nzbname: %s url: %s" % (nzbname, url))
     strm2lib.save_strm(__settings__, nzbname, url)
-    if SAVE_NZB and os.path.exists(NZB_CACHE):
-        nzb_path = os.path.join(NZB_CACHE, '%s%s' % (nzbname, '.nzb'))
+    if SAVE_NZB and utils.exists(NZB_CACHE):
+        nzb_path = utils.join(NZB_CACHE, '%s%s' % (nzbname, '.nzb'))
         log("save_strm: nzb_path: %s" % nzb_path)
         m_nzb.save(url, nzb_path)
 
 def add_local_nzb():
     log("add_local_nzb:")
-    if not os.path.exists(NZB_FOLDER):
+    if not utils.exists(NZB_FOLDER):
         __settings__.openSettings()
         return None
     dialog = xbmcgui.Dialog()
@@ -830,7 +833,7 @@ def add_local_nzb():
     # XBMC outputs utf-8
     path = unicode(nzb_file, 'utf-8')
     log("add_local_nzb: path: %s" % path)
-    if not os.path.isfile(path):
+    if not utils.isfile(path):
         return None
     else:
         params = dict()

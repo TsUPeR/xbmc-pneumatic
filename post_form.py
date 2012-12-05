@@ -4,6 +4,7 @@ import mimetools
 import mimetypes
 from cStringIO import StringIO
 import urllib2
+import utils
 
 def post(path, apikey, url, **kwargs):
     output = kwargs.get('output', 'xml')
@@ -12,8 +13,7 @@ def post(path, apikey, url, **kwargs):
     pp = kwargs.get('pp', '-1')
     nzbname = kwargs.get('nzbname', '')
     form = MultiPartForm() 
-    with open(path, 'rb') as out: 
-        nzb_data = out.read()
+    nzb_data = utils.read(path, 'rb')
     form.add_field('apikey', apikey)
     form.add_field('mode', 'addfile')
     form.add_field('output', output)

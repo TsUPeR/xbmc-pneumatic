@@ -30,6 +30,7 @@ import shutil
 from xml.dom.minidom import parse, parseString, Document, _write_data, Node, Element
 
 from utils import log
+import utils
 
 class NfoLabels:
     def __init__(self, nfo_path = None):
@@ -157,7 +158,7 @@ class NfoLabels:
         
         type is a string of 'movie' or 'tvshow' or 'episodedetails'
         """
-        filepath = os.path.join(self.nfo_path, filename)
+        filepath = utils.join(self.nfo_path, filename)
         if self.is_mini and type == 'movie' and 'code' in self.info_labels:
             doc = 'http://www.imdb.com/title/%s' % self.info_labels['code']
             self.write_doc(filepath, doc)
@@ -168,12 +169,11 @@ class NfoLabels:
             self.write_doc(filepath, self.to_xml(type))
     
     def write_doc(self, filepath, doc):
-        with open(filepath, 'wb') as out:
-            try: 
-                out.write(doc)
-            except:
-                log("write_doc: failed to create .nfo file: %s" % \
-                         xbmc.translatePath(filepath))
+        try: 
+            utils.write(filepath, doc, 'wb')
+        except:
+            log("write_doc: failed to create .nfo file: %s" % \
+                     xbmc.translatePath(filepath))
     
     def to_xml(self, type):
         """Creates XBMC .nfo xml data.
@@ -265,9 +265,9 @@ class NfoLabels:
         self.save('episodedetails', nzbname)
 
     def save_poster(self):
-        thumbnail_dest = os.path.join(self.nfo_path, 'folder.jpg')
+        thumbnail_dest = utils.join(self.nfo_path, 'folder.jpg')
         try:
-            shutil.copy(xbmc.translatePath(self.thumbnail), thumbnail_dest)
+            utils.copy(xbmc.translatePath(self.thumbnail), thumbnail_dest)
             log("save_poster: wrote: %s" %  xbmc.translatePath(thumbnail_dest))
         except:
             log("save_poster: failed to write: %s from: %s" %  \
@@ -276,9 +276,9 @@ class NfoLabels:
     def save_fanart(self):
         cached_fanart = xbmc.getCacheThumbName(self.fanart).replace('.tbn', '')
         cached_fanart = "special://profile/Thumbnails/%s/%s.jpg" % (cached_fanart[0], cached_fanart)
-        fanart_dest = os.path.join(self.nfo_path, 'fanart.jpg')
+        fanart_dest = utils.join(self.nfo_path, 'fanart.jpg')
         try:
-            shutil.copy(xbmc.translatePath(cached_fanart), xbmc.translatePath(fanart_dest))
+            utils.copy(xbmc.translatePath(cached_fanart), xbmc.translatePath(fanart_dest))
             log("save_fanart: wrote: %s from: %s" % \
                     (xbmc.translatePath(fanart_dest), xbmc.translatePath(cached_fanart)))
         except:
@@ -288,17 +288,16 @@ class NfoLabels:
 class ReadNfoLabels:
     def __init__(self, nfo_path):
         self.nfo_path = nfo_path
-        filename_movie = os.path.join(self.nfo_path, ('movie.nfo'))
-        filename_tvshow = os.path.join(self.nfo_path, ('episode.nfo'))
+        filename_movie = utils.join(self.nfo_path, ('movie.nfo'))
+        filename_tvshow = utils.join(self.nfo_path, ('episode.nfo'))
         self.is_episode = False
-        if os.path.exists(filename_movie):
+        if utils.exists(filename_movie):
             filename = filename_movie
-        elif os.path.exists(filename_tvshow):
+        elif utils.exists(filename_tvshow):
             filename = filename_tvshow
             self.is_episode = True
         try:
-            f = open(filename, 'r')
-            out = parseString(f.read())
+            out = parseString(utils.read(filename, 'r'))
         except:
             log(("ReadNfoLabels: could not open: %s.nfo") % \
                     (xbmc.translatePath(self.nfo_path)))
@@ -307,8 +306,8 @@ class ReadNfoLabels:
             self.info_labels = self._get_info_labels(out)
         else:
             self.info_labels = {'title': os.path.basename(self.nfo_path)}
-        self.thumbnail = os.path.join(self.nfo_path, 'folder.jpg')
-        self.fanart = os.path.join(self.nfo_path, 'fanart.jpg')
+        self.thumbnail = utils.join(self.nfo_path, 'folder.jpg')
+        self.fanart = utils.join(self.nfo_path, 'fanart.jpg')
 
     def _get_info_labels(self, doc):
         info_labels = dict()

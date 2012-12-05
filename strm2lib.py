@@ -38,6 +38,7 @@ import xbmcgui
 
 from utils import log
 from utils import unikeyboard
+import utils
 
 def save_strm(settings, nzbname, nzb):
     info = nfo.NfoLabels()
@@ -97,11 +98,11 @@ class Tvshow:
                 return
             #show_name = manual_name.decode("utf_8").encode("raw_unicode_escape")
             show_name = unicode(manual_name, 'utf-8').replace('\n','')
-        strm_path_show = os.path.join(self.strm_path, remove_disallowed_filename_chars(show_name))
+        strm_path_show = utils.join(self.strm_path, remove_disallowed_filename_chars(show_name))
         # Check if showname folder exist in path, if not create it.
-        if not os.path.exists(strm_path_show):
+        if not utils.exists(strm_path_show):
             try:
-                os.mkdir(strm_path_show)
+                utils.mkdir(strm_path_show)
             except:
                 log("Tvshow: save: failed to create TV-show folder %s" % strm_path_show)
                 return
@@ -114,7 +115,7 @@ class Tvshow:
         if not self.save_nfo_type == "disabled":
             if self.save_nfo_type == "minimal":
                 tv_nfo.mini()
-            if not os.path.exists(os.path.join(strm_path_show, 'tvshow.nfo')):
+            if not utils.exists(os.path.join(strm_path_show, 'tvshow.nfo')):
                 tv_nfo.save_tvshow(show_name)
             # now, save the episodename.nfo
             tv_nfo.save_episode(episode_name)
@@ -202,8 +203,8 @@ class Tvshow:
 
 class RageCache:
     def __init__(self, strm_path):
-        self.cache_path = os.path.join(strm_path, 'rageid.cache')
-        if not os.path.exists(self.cache_path):
+        self.cache_path = utils.join(strm_path, 'rageid.cache')
+        if not utils.exists(self.cache_path):
             pickle.dump( dict(), open( self.cache_path, "wb" ) )
 
     def get_show_name(self, rageid):
@@ -230,9 +231,9 @@ class Movie:
         self.nzb = nzb
 
     def save(self):
-        if not os.path.exists(self.strm_path):
+        if not utils.exists(self.strm_path):
             try:
-                os.mkdir(self.strm_path)
+                utils.mkdir(self.strm_path)
             except:
                 log("Movie: save: failed to create folder %s" % self.strm_path)
                 return

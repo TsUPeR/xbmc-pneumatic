@@ -28,6 +28,7 @@ import xbmc
 import urllib
 
 from utils import log
+import utils
 
 class StrmFile:
     def __init__(self, folder, nzbname, nzb):
@@ -36,15 +37,14 @@ class StrmFile:
         self.nzb = nzb
 
     def save(self):
-        filename = os.path.join(self.folder, (self.nzbname + '.strm'))
+        filename = utils.join(self.folder, (self.nzbname + '.strm'))
         nzb = urllib.quote_plus(self.nzb)
         nzbname = urllib.quote_plus(self.nzbname)
-        if os.path.exists(filename):
+        if utils.exists(filename):
             log("StrmFile: save: replacing .strm file: %s" % filename.encode("utf_8"))
         line = "plugin://plugin.program.pneumatic/?mode=strm&nzb=" + nzb +\
                        "&nzbname=" + nzbname
-        with open(filename, 'wb') as out:
-            try: 
-                out.write(line)
-            except:
-                log("StrmFile: save: failed to create .strm file: %s" % filename.encode("utf_8"))
+        try: 
+            utils.write(filename, line, 'wb')
+        except:
+            log("StrmFile: save: failed to create .strm file: %s" % filename.encode("utf_8"))
