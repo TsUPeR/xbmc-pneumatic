@@ -846,6 +846,21 @@ def add_local_nzb():
             params['type'] = 'add_file' 
         return params
 
+def strm_init(params):
+    log("strm_init: params: %s" % params)
+    strm_path = unicode(xbmc.getInfoLabel("ListItem.FileNameAndPath"), 'utf-8')
+    log("strm_init: strm_path: %s" % strm_path)
+    strm_base = os.path.dirname(strm_path)
+    nzbname = params['nzbname']
+    extensions = ['nzb', 'zip', 'gz']
+    for ext in extensions:
+        nzbname_ext = "%s.%s" % (utils.join(strm_base, nzbname), ext)
+        if utils.exists(nzbname_ext):
+            log("strm_init: exists: %s" % nzbname_ext)
+            params['nzb'] = nzbname_ext
+            params['type'] = 'add_file'
+    return params
+
 if (__name__ == "__main__" ):
     log('v%s started' % __settings__.getAddonInfo("version"), xbmc.LOGNOTICE)
     HANDLE = int(sys.argv[1])
@@ -882,6 +897,7 @@ if (__name__ == "__main__" ):
             if get("mode")== MODE_STRM:
                 xbmc.executebuiltin('Dialog.Close(all, true)')
                 time.sleep(2)
+                params = strm_init(params)
                 is_home, sab_nzo_id = is_nzb_home(params)
                 if is_home:
                     nzbname = utils.unquote_plus(get("nzbname"))
