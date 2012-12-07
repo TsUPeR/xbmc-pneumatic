@@ -256,7 +256,7 @@ class Sabnzbd:
         noofslots = 21
         nzbname = nzbname.lower().replace('.', ' ').replace('_', ' ')
         while limit <= noofslots:
-            url = self.baseurl + "&mode=history&start=" +str(start) + "&limit=" + str(limit) + "&output=xml"
+            url = self.baseurl + "&mode=history&start=" +str(start) + "&limit=" + str(limit) + "&failed_only=1&output=xml"
             doc = _load_xml(url)
             if doc:
                 history = doc.getElementsByTagName("history")
@@ -279,7 +279,7 @@ class Sabnzbd:
         noofslots = 21
         sab_nzo_id = None
         while limit <= noofslots and not sab_nzo_id:
-            url = self.baseurl + "&mode=history&start=" +str(start) + "&limit=" + str(limit) + "&output=xml"
+            url = self.baseurl + "&mode=history&start=" +str(start) + "&limit=" + str(limit) + "&failed_only=1&output=xml"
             doc = _load_xml(url)
             if doc:
                 history = doc.getElementsByTagName("history")
