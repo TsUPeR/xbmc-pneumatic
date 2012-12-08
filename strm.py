@@ -29,6 +29,7 @@ import urllib
 
 from utils import log
 import utils
+import nzb as m_nzb
 
 class StrmFile:
     def __init__(self, folder, nzbname, nzb):
@@ -37,14 +38,18 @@ class StrmFile:
         self.nzb = nzb
 
     def save(self):
-        filename = utils.join(self.folder, (self.nzbname + '.strm'))
+        strm_path = utils.join(self.folder, ('%s.strm' % self.nzbname))
+        nzb_path = utils.join(self.folder, ('%s.nzb' % self.nzbname))
         nzb = urllib.quote_plus(self.nzb)
         nzbname = urllib.quote_plus(self.nzbname)
-        if utils.exists(filename):
-            log("StrmFile: save: replacing .strm file: %s" % filename.encode("utf_8"))
+        if utils.exists(strm_path):
+            log("StrmFile: save: replacing .strm file: %s" % strm_path.encode("utf_8"))
         line = "plugin://plugin.program.pneumatic/?mode=strm&nzb=" + nzb +\
                        "&nzbname=" + nzbname
         try: 
-            utils.write(filename, line, 'wb')
+            utils.write(strm_path, line, 'wb')
         except:
-            log("StrmFile: save: failed to create .strm file: %s" % filename.encode("utf_8"))
+            log("StrmFile: save: failed to create .strm file: %s" % strm_path.encode("utf_8"))
+        if utils.exists(nzb_path):
+            log("StrmFile: save: replacing .nzb file: %s" % nzb_path.encode("utf_8"))
+        m_nzb.save(self.nzb, nzb_path)
