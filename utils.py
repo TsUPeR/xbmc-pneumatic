@@ -314,7 +314,6 @@ def pass_setup_test(result, incomplete):
             pass_test = False
             xbmcgui.Dialog().ok('Pneumatic', 'No incomplete folder configured')
     try:
-        # TODO os.access
         write_fake(filename, incomplete)
     except:
         pass_test = False
