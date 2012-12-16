@@ -828,7 +828,7 @@ def strm_init(params):
     log("strm_init: strm_path: %s" % strm_path)
     strm_base = os.path.dirname(strm_path)
     nzbname = params['nzbname']
-    extensions = ['nzb', 'zip', 'gz']
+    extensions = ['nzb', 'nzb.zip', 'nzb.gz']
     for ext in extensions:
         nzbname_ext = "%s.%s" % (utils.join(strm_base, nzbname), ext)
         if utils.exists(nzbname_ext):
