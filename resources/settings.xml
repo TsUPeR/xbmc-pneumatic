@@ -39,7 +39,5 @@
     <category label="30040">
         <setting type="lsep" label="30041"/>
         <setting id="nzb_cache" type="folder" label="30042" default=""/>
-        <setting type="lsep" label="30004"/>
-        <setting id="is_sab_local" type="bool" label="30043" default="true"/>
     </category>
 </settings>

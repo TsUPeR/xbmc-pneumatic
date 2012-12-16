@@ -60,7 +60,6 @@ INCOMPLETE_FOLDER = unicode(__settings__.getSetting("sabnzbd_incomplete"), 'utf-
 NZB_FOLDER = __settings__.getSetting("nzb_folder")
 SAVE_NZB = (__settings__.getSetting("save_nzb").lower() == "true")
 NZB_CACHE = __settings__.getSetting("nzb_cache")
-IS_SAB_LOCAL = (__settings__.getSetting("is_sab_local").lower() == "true")
 
 AUTO_PLAY = (__settings__.getSetting("auto_play").lower() == "true")
 
@@ -123,9 +122,8 @@ def is_nzb_home(params):
         # SABnzbd and URI should be latin-1 encoded
         if type == 'addurl':
             response = SABNZBD.addurl(nzb.encode('latin-1'), nzbname, category=category)
-        elif type == 'add_local':
-            response = SABNZBD.add_local(nzb.encode('latin-1'), category=category)
-        elif type == 'add_file':
+        # add_local will not work on remote shares, thus add_file
+        elif type == 'add_file' or type == 'add_local':
             response = SABNZBD.add_file(nzb.encode('latin-1'), category=category)
         log("is_nzb_home: type: %s response: %s" %(type, response))
         if "ok" in response:
@@ -197,10 +195,7 @@ def nzb_cache(type, nzb, nzbname):
     nzb_path = os.path.join(NZB_CACHE, '%s%s' % (nzbname, '.nzb'))
     if utils.exists(nzb_path):
         nzb = nzb_path
-        if IS_SAB_LOCAL:
-            type = 'add_local'
-        else:
-            type = 'add_file'
+        type = 'add_file'
         log("nzb_cache: nzb_path: %s" % nzb)
     return type, nzb
 
@@ -727,10 +722,7 @@ def incomplete():
 
 def local():
     log("local:")
-    if IS_SAB_LOCAL:
-        type = 'add_local'
-    else:
-        type = 'add_file'
+    type = 'add_file'
     folder_list = __settings__.getSetting('nzb_folder_list').split(';')
     if len(folder_list) == 1 and len(folder_list[0]) == 0:
         add_posts({'title':'Add folder'}, '', MODE_ADD_LOCAL, '', '', False)
@@ -840,10 +832,7 @@ def add_local_nzb():
         # Fixing the naming of nzb according to SAB rules
         params['nzbname'] = m_nzb.Nzbname(os.path.basename(path)).final_name
         params['nzb'] = path
-        if IS_SAB_LOCAL:
-            params['type'] = 'add_local'
-        else:
-            params['type'] = 'add_file' 
+        params['type'] = 'add_file' 
         return params
 
 def strm_init(params):
