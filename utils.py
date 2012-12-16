@@ -266,7 +266,10 @@ def get_parameters(parameterString):
         if (len(command) > 0):
             splitCommand = command.split('=')
             name = splitCommand[0]
-            value = splitCommand[1]
+            try:
+                value = splitCommand[1]
+            except:
+                value = ""
             commands[name] = value
     log("get_parameters: commands: %s" % commands)
     return commands
