@@ -117,6 +117,13 @@ def is_nzb_home(params):
         progressDialog = xbmcgui.DialogProgress()
         progressDialog.create('Pneumatic', 'Sending request to SABnzbd')
         category = get_category()
+        # correct wrong type mode
+        if nzb.startswith('http'):
+            type = "addurl"
+            log("is_nzb_home: type changed to addurl")
+        elif type == 'addurl':
+            type = 'add_file'
+            log("is_nzb_home: type changed to add_file")
         if type == 'addurl':
             type, nzb = nzb_cache(type, nzb, nzbname)
         # SABnzbd and URI should be latin-1 encoded
