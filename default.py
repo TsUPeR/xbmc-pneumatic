@@ -822,26 +822,6 @@ def save_strm(nzbname, url):
         log("save_strm: nzb_path: %s" % nzb_path)
         m_nzb.save(url, nzb_path)
 
-def add_local_nzb():
-    log("add_local_nzb:")
-    if not utils.exists(NZB_FOLDER):
-        __settings__.openSettings()
-        return None
-    dialog = xbmcgui.Dialog()
-    nzb_file = dialog.browse(1, 'Pick a NZB', 'files', '.nzb', False, False, NZB_FOLDER)
-    # XBMC outputs utf-8
-    path = unicode(nzb_file, 'utf-8')
-    log("add_local_nzb: path: %s" % path)
-    if not utils.isfile(path):
-        return None
-    else:
-        params = dict()
-        # Fixing the naming of nzb according to SAB rules
-        params['nzbname'] = m_nzb.Nzbname(os.path.basename(path)).final_name
-        params['nzb'] = path
-        params['type'] = 'add_file' 
-        return params
-
 def strm_init(params):
     log("strm_init: params: %s" % params)
     strm_path = unicode(xbmc.getInfoLabel("ListItem.FileNameAndPath"), 'utf-8')
