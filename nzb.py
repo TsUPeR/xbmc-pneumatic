@@ -39,7 +39,12 @@ class Nzbname:
         #work_name = platform_encode(nzbname)
         work_name = nzbname
         # If non-future: create safe folder name stripped from ".nzb" and junk
-        if work_name and work_name.lower().endswith('.nzb'):
+        if work_name and (work_name.lower().endswith('.nzb') or \
+                          work_name.lower().endswith('.nzb.gz') or \
+                          work_name.lower().endswith('.nzb.zip')):
+            dname, ext = os.path.splitext(work_name) # Used for folder name for final unpack
+            if ext.lower() == '.gz' or ext.lower() == '.zip':
+                work_name = dname
             dname, ext = os.path.splitext(work_name) # Used for folder name for final unpack
             if ext.lower() == '.nzb':
                 work_name = dname
