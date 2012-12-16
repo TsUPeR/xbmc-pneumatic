@@ -176,11 +176,24 @@ def dir_to_nzf_list(folder, sabnzbd):
 def dir_exists(folder, nzo_id):
     log("dir_exists: folder: %s nzo_id: %s" % (folder, nzo_id))
     if exists(folder):
-        if len(listdir_files(folder)) == 0 and nzo_id is None:
+        if nzo_id is None:
             # Clean out a failed SABnzbd folder removal
-            rmdir(folder)
-            log('dir_exists: rmdir: %s' % folder)
-            return False
+            if xbmcgui.Dialog().yesno("Pneumatic", "Clear out failed folder: \"%s\"" % os.path.basename(folder)):
+                for sub_dir in listdir_dirs(folder):
+                    sub_dir_path = join(folder, sub_dir)
+                    for sub_file in listdir_files(sub_dir_path):
+                        sub_file_path = join(sub_dir_path, sub_file)
+                        log("dir_exists: delete: sub_file_path: %s" % sub_file_path)
+                        delete(sub_file_path)
+                    log('dir_exists: rmdir: sub_dir_path: %s' % sub_dir_path)
+                    rmdir(sub_dir_path)
+                for file in listdir_files(folder):
+                    sub_file_path = join(folder, file)
+                    log("dir_exists: delete: sub_file_path: %s" % sub_file_path)
+                    delete(sub_file_path)
+                log('dir_exists: rmdir: folder: %s' % folder)
+                rmdir(folder)
+                return False
         return True
     else:
         return False
