@@ -150,10 +150,15 @@ def is_nzb_home(params):
         if "ok" in response:
             progressDialog.update(0, 'Request to SABnzbd succeeded', 'waiting for nzb download')
             seconds = 0
+            timer = 0
             #SABnzbd uses nzb url as name until it has downloaded the nzb file
             sab_nzo_id_init = SABNZBD.nzo_id(nzbname, nzb)
             log("is_nzb_home: sab_nzo_id_init: %s" % sab_nzo_id_init)
             while not (sab_nzo_id and utils.exists(folder)):
+                # Ask user what incomplete dir is right every 10s
+                if timer > 9:
+                    timer = 0
+                    folder, nzbname = find_incomplete(folder, nzbname)
                 sab_nzo_id = SABNZBD.nzo_id(nzbname)
                 label = str(seconds) + " seconds"
                 log("is_nzb_home: waiting for nzb: sab_nzo_id: %s for: %s" % (sab_nzo_id, label))
@@ -182,6 +187,7 @@ def is_nzb_home(params):
                     break
                 time.sleep(1)
                 seconds += 1
+                timer += 1
             if not iscanceled:
                 switch = SABNZBD.switch(0, '', sab_nzo_id)
                 log("is_nzb_home: switch: sab_nzo_id: %s msg: %s" % (sab_nzo_id, switch))
@@ -219,6 +225,28 @@ def nzb_cache(type, nzb, nzbname):
         type = 'add_file'
         log("nzb_cache: nzb_path: %s" % nzb)
     return type, nzb
+
+def find_incomplete(folder, nzbname):
+    log("find_incomplete:")
+    active_nzbname_list, nzbname_list = nzbname_lists()
+    ui_list = []
+    incomplete_list = []
+    for row in active_nzbname_list:
+        incomplete_list.append(row)
+        ui_list.append(os.path.basename(row[0]))
+    for row in nzbname_list:
+        if row[1] is not None:
+            incomplete_list.append(row)
+            ui_list.append(os.path.basename(row[0]))
+    dialog = xbmcgui.Dialog()
+    ret = dialog.select('Can\'t find incomplete', ui_list)
+    log("find_incomplete: ret: %s ui_list: %s" %(ret, ui_list))
+    if ret <= 0:
+        return folder, nzbname
+    else:
+        index = ret + 1
+    # folder, nzbname
+    return ui_list[index][0], ui_list[index][0]
 
 def save_nfo(folder):
     log("save_nfo: folder: %s" % folder)
@@ -701,24 +729,7 @@ def repair(params):
 
 def incomplete():
     log("incomplete:")
-    active_nzbname_list = []
-    m_nzbname_list = []
-    m_row = []
-    for folder in utils.listdir_dirs(INCOMPLETE_FOLDER):
-        sab_nzo_id = SABNZBD.nzo_id(folder)
-        if not sab_nzo_id:
-            m_row.append(folder)
-            m_row.append(None)
-            m_nzbname_list.append(m_row)
-            log("incomplete: m_nzbname_list.append: %s" % m_row)
-            m_row = []
-        else:
-            m_row.append(folder)
-            m_row.append(sab_nzo_id)
-            active_nzbname_list.append(m_row)
-            log("incomplete: active_nzbname_list: %s" % m_row)
-            m_row = []
-    nzbname_list = SABNZBD.nzo_id_history_list(m_nzbname_list)
+    active_nzbname_list, nzbname_list = nzbname_lists()
     nzoid_history_list = [x[1] for x in nzbname_list if x[1] is not None]
     for row in active_nzbname_list:
         url = "&nzoid=" + str(row[1]) + "&nzbname=" + utils.quote_plus(row[0]) +\
@@ -740,6 +751,28 @@ def incomplete():
     xbmcplugin.setContent(HANDLE, 'movies')
     xbmcplugin.endOfDirectory(HANDLE, succeeded=True, cacheToDisc=True)
     return
+
+def nzbname_lists():
+    log("nzbname_lists:")
+    active_nzbname_list = []
+    m_nzbname_list = []
+    m_row = []
+    for folder in utils.listdir_dirs(INCOMPLETE_FOLDER):
+        sab_nzo_id = SABNZBD.nzo_id(folder)
+        if not sab_nzo_id:
+            m_row.append(folder)
+            m_row.append(None)
+            m_nzbname_list.append(m_row)
+            log("incomplete: m_nzbname_list.append: %s" % m_row)
+            m_row = []
+        else:
+            m_row.append(folder)
+            m_row.append(sab_nzo_id)
+            active_nzbname_list.append(m_row)
+            log("incomplete: active_nzbname_list: %s" % m_row)
+            m_row = []
+    nzbname_list = SABNZBD.nzo_id_history_list(m_nzbname_list)
+    return active_nzbname_list, nzbname_list
 
 def local():
     log("local:")
