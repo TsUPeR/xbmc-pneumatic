@@ -68,9 +68,9 @@ def write_fake(file_list, folder):
         if not exists(filename):
             # make 7 byte file with a rar header
             try:
-                write(filename, RAR_HEADER, 'wb')
+                write_local(filename, RAR_HEADER, 'wb')
             except:
-                write(filename, RAR_HEADER_FRODO, 'wb')
+                write_remote(filename, RAR_HEADER_FRODO, 'wb')
             log("write_fake: write filename: %s" % filename)
         # Clean out 7 byte files if present
         else:
@@ -410,9 +410,20 @@ def size(file):
 
 def write(file, buffer, mode='w'):
     try:
-        fd = xbmcvfs.File(file, mode)
+        result = write_remote(file, buffer, mode)
+        return result
     except:
-        fd = open(file, mode)
+        result = write_local(file, buffer, mode)
+        return result
+
+def write_local(file, buffer, mode='w'):
+    fd = open(file, mode)
+    result = fd.write(buffer)
+    fd.close()
+    return result
+
+def write_remote(file, buffer, mode='w'):
+    fd = xbmcvfs.File(file, mode)
     result = fd.write(buffer)
     fd.close()
     return result
