@@ -1,3 +1,10 @@
+[B]Pneumatic 0.3.0[/B]
+- Lots of fixes
+- New icon and fanart
+- Option to delete local nzb's
+- Support for strm and nzb in same dir
+- Support for remote shares in Frodo
+
 [B]Pneumatic 0.2.12[/B]
 - Set_streaming now set for unpacked content
 - Correct postprocessing on canceled downloads
