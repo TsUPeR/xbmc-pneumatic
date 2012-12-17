@@ -122,7 +122,12 @@ def is_nzb_home(params):
     type = get('type', 'addurl')
     sab_nzo_id = SABNZBD.nzo_id(nzbname, nzb)
     log("is_nzb_home: folder: %s sab_nzo_id: %s" %(folder, sab_nzo_id))
-    if not utils.dir_exists(folder, sab_nzo_id):
+    if sab_nzo_id is None:
+        nzo_id = SABNZBD.nzo_id_history(nzbname)
+    else:
+        nzo_id = sab_nzo_id
+    log("is_nzb_home: nzo_id: %s" % nzo_id)
+    if not utils.dir_exists(folder, nzo_id):
         progressDialog = xbmcgui.DialogProgress()
         progressDialog.create('Pneumatic', 'Sending request to SABnzbd')
         category = get_category()
