@@ -78,29 +78,38 @@ MODE_LOCAL_LIST_TOP = "local_list_top"
 MODE_LOCAL_LIST = "local_list"
 MODE_ADD_LOCAL = "add_local"
 MODE_DEL_LOCAL = "del_local"
+MODE_LOCAL_FILE = "local_file"
+MODE_LOCAL_FILE_IN_DIR = "local_file_in_dir"
+MODE_DEL_LOCAL_FILE = "del_local_file"
+MODE_DEL_LOCAL_FILE_IN_DIR = "del_local_file_in_dir"
 
 def add_posts(info_labels, url, mode, thumb='', fanart='', folder=True):
     log("add_posts: info_labels: %s url: %s mode: %s" % (info_labels, url, mode))
     listitem=xbmcgui.ListItem(info_labels['title'], iconImage="DefaultVideo.png", thumbnailImage=thumb)
     listitem.setInfo(type="Video", infoLabels=info_labels)
     listitem.setProperty("Fanart_Image", fanart)
-    xurl = "%s?mode=%s" % (sys.argv[0],mode)
-    xurl = xurl + url
-    listitem.setPath(xurl)
+    cm = []
     if mode == MODE_INCOMPLETE_LIST:
-        cm = []
         cm_url_delete = sys.argv[0] + '?' + "mode=delete&incomplete=True" + url
         cm.append(("Delete" , "XBMC.RunPlugin(%s)" % (cm_url_delete)))
         cm_url_delete_all = sys.argv[0] + '?' + "mode=delete&delete_all=True&incomplete=True" + url
         cm.append(("Delete all inactive" , "XBMC.RunPlugin(%s)" % (cm_url_delete_all)))
-        listitem.addContextMenuItems(cm, replaceItems=True)
     if mode == MODE_LOCAL_LIST_TOP:
-        cm = []
         cm_url_add_local = sys.argv[0] + '?' + "mode=add_local"
         cm.append(("Add folder" , "XBMC.RunPlugin(%s)" % (cm_url_add_local)))
         cm_url_delete_local = sys.argv[0] + '?' + "mode=del_local" + url
         cm.append(("Remove folder" , "XBMC.RunPlugin(%s)" % (cm_url_delete_local)))
+    if mode == MODE_LOCAL_FILE:
+        mode = MODE_PLAY
+        cm.append(("Remove nzb" , "XBMC.RunPlugin(%s?mode=%s%s)" % (sys.argv[0], MODE_DEL_LOCAL_FILE, url)))
+    if mode == MODE_LOCAL_FILE_IN_DIR:
+        mode = MODE_PLAY
+        cm.append(("Remove nzb" , "XBMC.RunPlugin(%s?mode=%s%s)" % (sys.argv[0], MODE_DEL_LOCAL_FILE_IN_DIR, url)))
+    if len(cm) > 0:
         listitem.addContextMenuItems(cm, replaceItems=True)
+    xurl = "%s?mode=%s" % (sys.argv[0],mode)
+    xurl = xurl + url
+    listitem.setPath(xurl)
     return xbmcplugin.addDirectoryItem(handle=HANDLE, url=xurl, listitem=listitem, isFolder=folder)
     
 def is_nzb_home(params):
@@ -768,7 +777,7 @@ def list_local(params):
                 info.info_labels['title'] = info.info_labels['title']
                 url = "&nzbname=" + utils.quote_plus(nzb_name) +\
                       "&nzb=" + utils.quote_plus(nzb_list[0]) + "&type=" + type
-                add_posts(info.info_labels, url, MODE_PLAY, info.thumbnail, info.fanart, False)
+                add_posts(info.info_labels, url, MODE_LOCAL_FILE_IN_DIR, info.thumbnail, info.fanart, False)
             else:
                 url = "&type=" + type + "&folder=" + utils.quote_plus(folder_path)
                 add_posts({'title':folder}, url, MODE_LOCAL_LIST, '', '')
@@ -781,7 +790,7 @@ def list_local(params):
             file_path = utils.join(top_folder, file)
             url = "&nzbname=" + utils.quote_plus(m_nzb.Nzbname(file).final_name) +\
                   "&nzb=" + utils.quote_plus(file_path) + "&type=" + type
-            add_posts({'title':file}, url, MODE_PLAY, '', '', False)
+            add_posts({'title':file}, url, MODE_LOCAL_FILE, '', '', False)
     xbmcplugin.setContent(HANDLE, 'movies')
     xbmcplugin.endOfDirectory(HANDLE, succeeded=True, cacheToDisc=True)
     return
@@ -813,6 +822,27 @@ def del_local(params):
     log("del_local: new_folder_list: %s" % new_folder_list)
     __settings__.setSetting("nzb_folder_list", new_folder_list)
     xbmc.executebuiltin("Container.Refresh")
+
+def del_local_file(params):
+    log("del_local_file: params: %s" % params)
+    local_file = utils.unquote_plus(params.get("nzb"))
+    if xbmcgui.Dialog().yesno("Pneumatic", "Delete:", "%s" % local_file):
+        log("del_local_file: delete: %s" % local_file)
+        utils.delete(local_file)
+        xbmc.executebuiltin("Container.Refresh")
+    
+def del_local_file_in_dir(params):
+    log("del_local_file_in_dir: params: %s" % params)
+    local_file = utils.unquote_plus(params.get("nzb"))
+    local_path = os.path.dirname(local_file)
+    if xbmcgui.Dialog().yesno("Pneumatic", "Delete:", "%s" % local_path):
+        for file in utils.listdir_files(local_path):
+            local_file_path = utils.join(local_path, file)
+            log("del_local_file_in_dir: delete: %s" % local_file_path)
+            utils.delete(local_file_path)
+        log("del_local_file_in_dir: rmdir: %s" % local_path)
+        utils.rmdir(local_path)
+        xbmc.executebuiltin("Container.Refresh")
 
 def save_strm(nzbname, url):
     log("save_strm: nzbname: %s url: %s" % (nzbname, url))
@@ -890,4 +920,8 @@ if (__name__ == "__main__" ):
             if get("mode")== MODE_ADD_LOCAL:
                 add_local()
             if get("mode")== MODE_DEL_LOCAL:
-                del_local(params) 
+                del_local(params)
+            if get("mode")== MODE_DEL_LOCAL_FILE:
+                del_local_file(params)
+            if get("mode")== MODE_DEL_LOCAL_FILE_IN_DIR:
+                del_local_file_in_dir(params)                
