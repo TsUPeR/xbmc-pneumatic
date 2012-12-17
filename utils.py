@@ -404,7 +404,6 @@ def size(file):
         fd = xbmcvfs.File(file)
         size_out = fd.size()
         fd.close()
-        
     except:
         size_out = os.stat(file).st_size
     return size_out
