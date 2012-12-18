@@ -227,7 +227,7 @@ def nzb_cache(type, nzb, nzbname):
     return type, nzb
 
 def find_incomplete(folder, nzbname):
-    log("find_incomplete:")
+    log("find_incomplete: folder: %s nzbname: %s" % (folder, nzbname))
     active_nzbname_list, nzbname_list = nzbname_lists()
     ui_list = []
     incomplete_list = []
@@ -239,14 +239,22 @@ def find_incomplete(folder, nzbname):
             incomplete_list.append(row)
             ui_list.append(os.path.basename(row[0]))
     dialog = xbmcgui.Dialog()
-    ret = dialog.select('Can\'t find incomplete', ui_list)
-    log("find_incomplete: ret: %s ui_list: %s" %(ret, ui_list))
-    if ret <= 0:
-        return folder, nzbname
+    if len(ui_list) > 0:
+        ret = dialog.select('Select download directory', ui_list)
+        log("find_incomplete: ret: %s ui_list: %s" %(ret, ui_list))
+        if ret <= 0:
+            return folder, nzbname
+        else:
+            index = ret + 1
+        # folder, nzbname
+        return ui_list[index][0], ui_list[index][0]
     else:
-        index = ret + 1
-    # folder, nzbname
-    return ui_list[index][0], ui_list[index][0]
+        ret = dialog.ok('Pneumatic', \
+                  'Can\'t find any incomplete directory for', \
+                  '%s' % nzbname, \
+                  'please wait or cancel the streaming')
+        log("find_incomplete: no incomplete dir found ret: %s" % ret)
+        return folder, nzbname
 
 def save_nfo(folder):
     log("save_nfo: folder: %s" % folder)
