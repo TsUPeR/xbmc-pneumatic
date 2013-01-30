@@ -34,6 +34,7 @@ import xbmcvfs
 import time
 import math
 import stat
+import tempfile
 
 import rarfile
 
@@ -69,7 +70,7 @@ def write_fake(file_list, folder):
             try:
                 write_local(filename, RAR_HEADER, 'wb')
             except:
-                copy_remote_fake(folder, filebasename)
+                write_remote(filename, RAR_HEADER, 'wb')
             log("write_fake: write filename: %s" % filename)
         # Clean out 7 byte files if present
         else:
@@ -82,13 +83,6 @@ def write_fake(file_list, folder):
                     log("write_fake: rename: %s/%s" % (filename_one, filename))
     return
 
-def copy_remote_fake(remote_path, filebasename):
-    local = join(__userdata__, filebasename)
-    remote = join(remote_path, filebasename)
-    write_local(local, RAR_HEADER, 'wb')
-    copy(local, remote)
-    delete(local)
-    
 def remove_fake(file_list, folder):
     log("remove_fake: file_list: %s folder: %s" % (file_list, folder))
     for filebasename in file_list:
@@ -429,9 +423,12 @@ def write_local(file, buffer, mode='w'):
     return result
 
 def write_remote(file, buffer, mode='w'):
-    fd = xbmcvfs.File(file, mode)
-    result = fd.write(buffer)
-    fd.close()
+    temp = tempfile.NamedTemporaryFile(mode, delete=False)
+    result = temp.write(buffer)
+    temp_name = temp.name
+    temp.close()
+    copy(temp_name, file)
+    delete(temp_name)
     return result
 
 def copy(source, target):
