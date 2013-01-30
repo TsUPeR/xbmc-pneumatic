@@ -1,3 +1,7 @@
+[B]Pneumatic 0.3.1[/B]
+- Fix for remote fake rar writing in Frodo 
+- Better "Find incomplete" dialog
+
 [B]Pneumatic 0.3.0[/B]
 - Lots of fixes
 - New icon and fanart
