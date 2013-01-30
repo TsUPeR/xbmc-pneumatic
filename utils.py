@@ -58,7 +58,6 @@ RE_MKV = '\.mkv$|\.mp4$'
 RE_HTML = '&(\w+?);'
 
 RAR_HEADER = "Rar!\x1a\x07\x00"
-RAR_HEADER_FRODO = "Rar!\x1a\x07"
 RAR_MIN_SIZE = 10485760
 
 def write_fake(file_list, folder):
@@ -70,7 +69,7 @@ def write_fake(file_list, folder):
             try:
                 write_local(filename, RAR_HEADER, 'wb')
             except:
-                write_remote(filename, RAR_HEADER_FRODO, 'wb')
+                copy_remote_fake(folder, filebasename)
             log("write_fake: write filename: %s" % filename)
         # Clean out 7 byte files if present
         else:
@@ -83,6 +82,13 @@ def write_fake(file_list, folder):
                     log("write_fake: rename: %s/%s" % (filename_one, filename))
     return
 
+def copy_remote_fake(remote_path, filebasename):
+    local = join(__userdata__, filebasename)
+    remote = join(remote_path, filebasename)
+    write_local(local, RAR_HEADER, 'wb')
+    copy(local, remote)
+    delete(local)
+    
 def remove_fake(file_list, folder):
     log("remove_fake: file_list: %s folder: %s" % (file_list, folder))
     for filebasename in file_list:
