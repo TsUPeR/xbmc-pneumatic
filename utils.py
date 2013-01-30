@@ -200,16 +200,13 @@ def dir_exists(folder, nzo_id):
 
 def rar_filenames(folder, file):
     log("rar_filenames: folder: %s file: %s" % (folder, file))
-    filepath = join(folder, file)
-    temp_path = os.path.join(__userdata__, 'temp.rar')
-    # clean out potential old temp file
-    delete(temp_path)
+    temp = tempfile.NamedTemporaryFile('wb', delete=False)
     # read only 1024 bytes of the remote rar
-    buffer = read(filepath, 'rb', 1024)
+    buffer = read(join(folder, file), 'rb', 1024)
     # write it local for rar inspection 
-    fd_out = open(temp_path,'wb')
-    fd_out.write(buffer)
-    fd_out.close()
+    temp.write(buffer)
+    temp_path = temp.name
+    temp.close()
     rf = rarfile.RarFile(temp_path)
     delete(temp_path)
     movie_file_list = rf.namelist()
