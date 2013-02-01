@@ -201,8 +201,8 @@ def dir_exists(folder, nzo_id):
 def rar_filenames(folder, file):
     log("rar_filenames: folder: %s file: %s" % (folder, file))
     temp = tempfile.NamedTemporaryFile('wb', delete=False)
-    # read only 1024 bytes of the remote rar
-    buffer = read(join(folder, file), 'rb', 1024)
+    # read only 1024000 bytes of the remote rar
+    buffer = read(join(folder, file), 'rb', 1024000)
     # write it local for rar inspection 
     temp.write(buffer)
     temp_path = temp.name
