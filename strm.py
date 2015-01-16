@@ -23,8 +23,6 @@
  OTHER DEALINGS IN THE SOFTWARE.
 """
 
-import os
-import xbmc
 import urllib
 
 from utils import log

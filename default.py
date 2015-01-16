@@ -24,9 +24,6 @@
 """
 
 import sys
-import re
-import urllib
-import urllib2
 import os
 import time
 
@@ -35,14 +32,12 @@ import xbmcaddon
 import xbmcgui
 import xbmcplugin
 
-from xml.dom.minidom import parse, parseString
 from threading import Thread
 
 import sabnzbd
 from utils import log
 import utils
 import nfo
-import strm
 import xbmcplayer
 import nfo2home
 import strm2lib

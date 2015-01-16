@@ -26,8 +26,7 @@ import xbmc
 import math
 import re
 import os
-import shutil
-from xml.dom.minidom import parse, parseString, Document, _write_data, Node, Element
+from xml.dom.minidom import parseString, Document, _write_data, Node, Element
 
 from utils import log
 import utils
