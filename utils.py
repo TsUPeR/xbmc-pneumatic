@@ -35,7 +35,7 @@ import time
 import math
 import stat
 import tempfile
-
+from sabnzbd import Nzf
 import rarfile
 
 __settings__ = xbmcaddon.Addon(id='plugin.program.pneumatic')
@@ -44,10 +44,12 @@ __userdata__ = xbmc.translatePath(__settings__.getAddonInfo("profile"))
 
 DEBUG_LOG = (__settings__.getSetting("debug_log").lower() == "true")
 
+SAB_ADMIN_DIR = "__ADMIN__"
+SAB_ADMIN_ATTRIB_FILE = "SABnzbd_attrib"
 
 RE_PART_X = r'(\S*?\.part\d{1,3}\.rar)'
 RE_PART01_X = '(\S*?\.part0{0,2}1\.rar)'
-RE_R_X = r'(\S*?\.[rs]\d{2,3})'
+RE_R_X = r'(\S*?\.[rs]\d{2,3})$'
 RE_RAR_X = r'(\S*?\.rar)'
 RE_PART = '\.part\d{2,3}\.rar$'
 RE_PART01 = '\.part0{1,2}1\.rar$'
@@ -59,7 +61,7 @@ RE_MKV = '\.mkv$|\.mp4$'
 RE_HTML = '&(\w+?);'
 
 RAR_HEADER = "Rar!\x1a\x07\x00"
-RAR_MIN_SIZE = 10485760
+RAR_MIN_SIZE = 10485760.00
 
 def write_fake(file_list, folder):
     log("write_fake: file_list: %s folder: %s" % (file_list, folder))
@@ -103,7 +105,7 @@ def sorted_rar_nzf_file_list(nzf_list):
         for nzf in nzf_list:
             partrar = re.findall(RE_PART, nzf.filename)
             rrar = re.findall(RE_R, nzf.filename)
-            if ((nzf.filename.endswith(".rar") and not partrar) or partrar or rrar):
+            if ((nzf.filename.endswith(".rar") and not partrar) or partrar or rrar) and float(nzf.bytes) > RAR_MIN_SIZE:
                 file_list.append(nzf)
             else:
                 partrar_x = re.search(RE_PART_X, nzf.filename)
@@ -116,7 +118,7 @@ def sorted_rar_nzf_file_list(nzf_list):
                     out = partrar_x.group(1)
                 elif rrar_x:
                     out = rrar_x.group(1)
-                if out is not None:
+                if out is not None and float(nzf.bytes) > RAR_MIN_SIZE:
                     nzf.filename = out
                     file_list.append(nzf)
         if len(file_list) > 1:
@@ -141,7 +143,7 @@ def sorted_multi_arch_nzf_list(nzf_list):
         part01rar_x = re.findall(RE_PART01_X, nzf.filename)
         rarrar_x = re.search(RE_RAR_X, nzf.filename)
         # No small sub archives
-        if ((rarrar_x and not partrar_x) or part01rar_x) and nzf.bytes > RAR_MIN_SIZE:
+        if ((rarrar_x and not partrar_x) or part01rar_x) and float(nzf.bytes) > RAR_MIN_SIZE:
             file_list.append(nzf)
     if len(file_list) > 1:
         file_list.sort(key=lambda x: x.filename)
@@ -164,18 +166,18 @@ def list_dir(folder):
         file_list.append(row)
     return file_list
 
-def dir_to_nzf_list(folder, sabnzbd):
-    log("dir_to_nzf_list: folder: %s sabnzbd: %s" % (folder, sabnzbd))
+def dir_to_nzf_list(folder):
+    log("dir_to_nzf_list: folder: %s " % folder)
     nzf_list = []
     file_list = list_dir(folder)
     for filename, bytes in file_list:
-        nzf = sabnzbd.Nzf(filename=filename, bytes=bytes)
+        nzf = Nzf(filename=filename, bytes=bytes)
         nzf_list.append(nzf)
     return nzf_list
 
 def dir_exists(folder, nzo_id):
     log("dir_exists: folder: %s nzo_id: %s" % (folder, nzo_id))
-    if exists(folder):
+    if exists_incomplete(folder):
         if nzo_id is None:
             # Clean out a failed SABnzbd folder removal
             if xbmcgui.Dialog().yesno("Pneumatic", "Clear out failed folder: \"%s\"" % os.path.basename(folder)):
@@ -232,14 +234,16 @@ def no_sample_list(movie_list):
     log("no_sample_list: movie_list: %s" % movie_list)
     outList = movie_list[:]
     for i in range(len(movie_list)):
-        match = re.search(RE_SAMPLE, movie_list[i], re.IGNORECASE)
-        if match:
+        match_sample = re.search(RE_SAMPLE, movie_list[i], re.IGNORECASE)
+        match_movie = re.search(RE_MOVIE, movie_list[i], re.IGNORECASE)
+        if match_sample or not match_movie:
             outList.remove(movie_list[i])
             log("no_sample_list: outList.remove: %s" % movie_list[i])
-    if len(outList) == 0:
+    #TODO sort this out.
+    #if len(outList) == 0:
         # We return sample if it's the only file left 
-        outList.append(movie_list[0])
-        log("no_sample_list: outList.append: %s" % movie_list[0])
+    #    outList.append(movie_list[0])
+    #   log("no_sample_list: outList.append: %s" % movie_list[0])
     return outList
   
 def rarpath_fixer(folder, file):
@@ -304,8 +308,8 @@ def pass_setup_test(result, incomplete):
         error = "Wrong ip-number or port"
     if result == "apikey":
         error = "Wrong API key"
-    if result == "restart":
-        error = "Please restart SABnzbd, allow_streaming"
+    #if result == "restart":
+    #    error = "Please restart SABnzbd, allow_streaming"
     if not result == "ok":
         xbmcgui.Dialog().ok('Pneumatic - SABnzbd error:', error)
         pass_test = False
@@ -340,8 +344,8 @@ def wait_for_rar_label(nzo, nzf, time_then):
         mb = 1
         mbleft = 0
     else:
-        mb = nzf.mb
-        mbleft = nzf.mbleft
+        mb = float(nzf.mb)
+        mbleft = float(nzf.mbleft)
     s = time.time() - time_then
     if mbleft > 0:
         percent = math.floor(((mb-mbleft)/mb)*100)
@@ -436,13 +440,12 @@ def delete(file):
 
 def exists(path):
     # path is a file or folder
-    return xbmcvfs.exists(path)
+    result = xbmcvfs.exists(xbmc.validatePath(path))
+    return result == 1
 
-def isfile(path):
-    try:
-        return stat.S_ISREG(xbmcvfs.Stat(path).st_mode())
-    except:
-        return os.path.isfile(path)
+def exists_incomplete(folder):
+    incomplete_admin_dir = os.path.join(folder, os.path.join(SAB_ADMIN_DIR, SAB_ADMIN_ATTRIB_FILE))
+    return exists(incomplete_admin_dir)
 
 def isdir(path):
     try:
@@ -486,7 +489,7 @@ def mkdirs(path):
     try:
         xbmcvfs.mkdirs(path)
     except:
-        makedirs(path)
+        os.makedirs(path)
     return
 
 def rename(file, name):

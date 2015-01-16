@@ -98,7 +98,7 @@ class Tvshow:
                 return
             #show_name = manual_name.decode("utf_8").encode("raw_unicode_escape")
             show_name = unicode(manual_name, 'utf-8').replace('\n','')
-        strm_path_show = utils.join(self.strm_path, remove_disallowed_filename_chars(show_name))
+        strm_path_show = utils.join(self.strm_path, os.path.join(remove_disallowed_filename_chars(show_name),''))
         # Check if showname folder exist in path, if not create it.
         if not utils.exists(strm_path_show):
             try:
@@ -223,7 +223,7 @@ class Movie:
     def __init__(self, info, strm_path_movie, save_nfo_type, save_poster, save_fanart, nzbname, nzb):
         self.info = info
         self.strm_path_movie = strm_path_movie
-        self.strm_path = os.path.join(self.strm_path_movie, nzbname)
+        self.strm_path = utils.join(self.strm_path_movie, os.path.join(nzbname, ''))
         self.save_nfo_type = save_nfo_type
         self.save_poster = save_poster
         self.save_fanart = save_fanart

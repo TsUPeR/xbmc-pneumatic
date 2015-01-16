@@ -8,7 +8,7 @@
         <setting id="sabnzbd_user" type="text" label="30014" default=""/>
         <setting id="sabnzbd_pass" type="text" label="30015" default=""/>
         <setting id="sabnzbd_ip" type="ipaddress" label="30008" default="127.0.0.1"/>
-        <setting id="sabnzbd_port" type="number" label="30009" default=8080/>
+        <setting id="sabnzbd_port" type="number" label="30009" default="8080"/>
         <setting id="sabnzbd_incomplete" type="folder" label="30007" default=""/>
         <setting type="lsep" label="30005"/>
         <setting id="sabnzbd_cat" type="text" label="30016" default=""/>
