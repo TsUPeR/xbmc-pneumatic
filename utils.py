@@ -83,20 +83,28 @@ def write_fake(file_list, folder):
                 if exists(filename_one):
                     rename(filename_one, filename)
                     log("write_fake: rename: %s/%s" % (filename_one, filename))
+                filename_one_rar = join(folder, filebasename.replace(".rar", ".1.rar"))
+                if exists(filename_one_rar) and filebasename.endswith(".rar"):
+                    rename(filename_one_rar, filename)
+                    log("write_fake: rename: %s/%s" % (filename_one_rar, filename))
     return
 
 def remove_fake(file_list, folder):
     log("remove_fake: file_list: %s folder: %s" % (file_list, folder))
     for filebasename in file_list:
         filename = join(folder, filebasename)
-        filename_one = join(folder, ("%s.1" % filebasename))
         if exists(filename):
             if size(filename) == 7:
                 delete(filename)
                 log("remove_fake: delete filename: %s" % filename)
+                filename_one = join(folder, ("%s.1" % filebasename))
                 if exists(filename_one):
                     rename(filename_one, filename)
                     log("remove_fake: rename: %s/%s" % (filename_one, filename))
+                filename_one_rar = join(folder, filebasename.replace(".rar", ".1.rar"))
+                if exists(filename_one_rar) and filebasename.endswith(".rar"):
+                    rename(filename_one_rar, filename)
+                    log("write_fake: rename: %s/%s" % (filename_one_rar, filename))
     return
 
 def sorted_rar_nzf_file_list(nzf_list):
